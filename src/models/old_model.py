@@ -37,11 +37,12 @@ class OldModel(nn.Module):
     
     self.config = config
     self.name = config.name
+    if config.use_ff:
+      self.name += '_FF'
 
     self.d_embed = config.d_embed
     self.n_layer = config.n_layer
     self.n_head = config.n_head
-    self.d_ff = config.d_ff
 
     # Transformer Components
     self.wte = nn.Embedding(config.vocab_size, config.d_embed)
@@ -75,9 +76,9 @@ class OldModel(nn.Module):
     if self.config.use_ff or self.config.end_ff:
       self.ln_mlp = nn.LayerNorm(config.d_embed, bias=False)
       self.mlp = nn.Sequential(
-        nn.Linear(config.d_embed, config.d_ff, bias=False),
+        nn.Linear(config.d_embed, config.d_embed * 4, bias=False),
         nn.GELU(),
-        nn.Linear(config.d_ff, config.d_embed, bias=False),
+        nn.Linear(config.d_embed * 4, config.d_embed, bias=False),
         nn.Dropout(config.dropout)
       )
     
