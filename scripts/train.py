@@ -1,9 +1,7 @@
 import setup_paths
-from util import load_most_recent_checkpoint
-
+from util import load_most_recent_checkpoint, get_model_class
 import sys
 import re
-import importlib
 
 def run_experiment(model, num_epochs_trained=0):
   pass
@@ -13,11 +11,9 @@ if __name__ == "__main__":
   model_name = sys.argv[1]
   experiment_params = sys.argv[2:]
   
-  model_module = importlib.import_module('src.models.' + model_name.lower())
-  model_class = getattr(model_module, model_name)
-  model_config = getattr(model_module, model_name + 'Config')
+  model_class, model_config_class = get_model_class(model_name)
   
-  config = model_config()
+  config = model_config_class()
   
   # Extract model parameters
   head_regex = re.compile(r'(\d+)H')
