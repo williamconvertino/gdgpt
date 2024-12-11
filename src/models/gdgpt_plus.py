@@ -15,7 +15,7 @@ class GDGPTPlusConfig:
   attn_fn: str = 'softmax'
   
   def get_extension(self):
-    return f'{self.n_layer}L_{self.n_head}H_FF={self.use_ff}_attn={self.attn_fn}'
+    return f'{self.d_embed}D_{self.n_layer}L_{self.n_head}H_FF={self.use_ff}_attn={self.attn_fn}'
   
   def __post_init__(self):
     assert self.attn_fn in ['softmax', 'linear', 'rbf'], 'Invalid attention function'
