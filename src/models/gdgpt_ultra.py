@@ -66,8 +66,8 @@ class GDGPTUltra(nn.Module):
   def _init_weights(self):
     nn.init.normal_(self.wte.weight, mean=0, std=0.02)
     nn.init.normal_(self.wpe.weight, mean=0, std=0.02)
-    nn.init.normal_(self.W_q, mean=0, std=0.02)
-    nn.init.normal_(self.W_k, mean=0, std=0.02)
+    nn.init.normal_(self.W_q_diag, mean=0, std=0.02)
+    nn.init.normal_(self.W_k_diag, mean=0, std=0.02)
     nn.init.normal_(self.lm_head.weight, mean=0, std=0.02)
     for k in range(self.config.n_layer):
       nn.init.normal_(self.W_o_list[k].weight, mean=0, std=0.02)
