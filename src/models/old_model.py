@@ -9,12 +9,12 @@ from dataclasses import dataclass
 @dataclass
 class OldModelConfig:
   
-  context_size: int
+  context_size: int = 256
   vocab_size: int
   
-  d_embed: int
-  n_layer: int
-  n_head: int
+  d_embed: int = 512
+  n_layer: int = 1
+  n_head: int = 8
   
   dropout: float = 0.1
   
