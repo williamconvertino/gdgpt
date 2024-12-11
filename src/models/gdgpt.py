@@ -78,10 +78,10 @@ class GDGPT(nn.Module):
     avg_wte = avg_wte / R.sum(dim=1).unsqueeze(-1)
     
     # Subtract weighted average from token embeddings
-    V = e - avg_wte
+    V = (e - avg_wte)
     
     # Compute delta f_k
-    delta_f_k = krn @ V
+    delta_f_k = krn @ V.unsqueeze(1)
     delta_f_k = self.N_reg * delta_f_k
     delta_f_k = self.W_o_list[k](delta_f_k.transpose(1, 2).contiguous().view(B, S, -1))
     
