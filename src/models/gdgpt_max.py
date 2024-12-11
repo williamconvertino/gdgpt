@@ -112,6 +112,7 @@ class GDGPTMax(nn.Module):
     # Regularization
     e = self.drop_e(e)
     p = self.drop_p(p)
+    
     e = self.ln_e(e)
     p = self.ln_p(p)
     
@@ -140,7 +141,7 @@ class GDGPTMax(nn.Module):
       
     # FF
     if self.config.use_ff:
-      f_k = self.ff(f_k)
+      f_k = f_k + self.ff(f_k)
     
     # LM Head
     f_k = self.ln_f(f_k)
