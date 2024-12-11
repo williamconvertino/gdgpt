@@ -36,6 +36,7 @@ if __name__ == "__main__":
   
   # Extract model and experiment parameters
   if experiment_params:
+    print(experiment_params)
     head_regex = re.compile(r'(\d+)H')
     head_search = head_regex.search(experiment_params)
     if head_search:
@@ -50,7 +51,7 @@ if __name__ == "__main__":
     ff_search = ff_regex.search(experiment_params)
     if ff_search:
       config.feed_forward = ff_search.group(1).lower() == 'true'
-      
+      print(config.feed_forward)  
     resume_regex = re.compile(r'resume=(\w+)')
     resume_search = resume_regex.search(experiment_params)
     if resume_search and resume_search.group(1).lower() == 'false':
