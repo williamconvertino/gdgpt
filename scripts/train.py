@@ -18,20 +18,21 @@ if __name__ == "__main__":
   config = model_config_class(vocab_size=TINYSTORIES_TOKENIZER_VOCAB_SIZE)
   
   # Extract model parameters
-  head_regex = re.compile(r'(\d+)H')
-  head_search = head_regex.search(experiment_params)
-  if head_search:
-    config.n_head = int(head_search.group(1))
-  
-  layer_regex = re.compile(r'(\d+)L')
-  layer_search = layer_regex.search(experiment_params)
-  if layer_search:
-    config.n_layer = int(layer_search.group(1))
-  
-  ff_regex = re.compile(r'FF=(\w+)')
-  ff_search = ff_regex.search(experiment_params)
-  if ff_search:
-    config.feed_forward = ff_search.group(1).lower() == 'true'
+  if experiment_params:
+    head_regex = re.compile(r'(\d+)H')
+    head_search = head_regex.search(experiment_params)
+    if head_search:
+      config.n_head = int(head_search.group(1))
+    
+    layer_regex = re.compile(r'(\d+)L')
+    layer_search = layer_regex.search(experiment_params)
+    if layer_search:
+      config.n_layer = int(layer_search.group(1))
+    
+    ff_regex = re.compile(r'FF=(\w+)')
+    ff_search = ff_regex.search(experiment_params)
+    if ff_search:
+      config.feed_forward = ff_search.group(1).lower() == 'true'
   
   model = model_class(config)
     
