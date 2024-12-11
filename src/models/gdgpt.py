@@ -81,7 +81,7 @@ class GDGPT(nn.Module):
     V = e - avg_wte
     
     # Compute delta f_k
-    delta_f_k = krn @ V.unsqueeze(-2)
+    delta_f_k = krn @ V
     delta_f_k = self.N_reg * delta_f_k
     delta_f_k = self.W_o_list[k](delta_f_k.transpose(1, 2).contiguous().view(B, S, -1))
     
