@@ -26,7 +26,7 @@ if __name__ == "__main__":
   
   # Extract model
   model_name = sys.argv[1]
-  experiment_params = sys.argv[2:]
+  experiment_params = sys.argv[2]
   
   model_class, model_config_class = get_model_class(model_name)
   
