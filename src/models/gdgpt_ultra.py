@@ -37,6 +37,7 @@ class GDGPTUltra(nn.Module):
     self.drop_p = nn.Dropout(0.1)
     self.ln_e = nn.LayerNorm(config.d_embed, bias=False)
     self.ln_p = nn.LayerNorm(config.d_embed, bias=False)
+    self.ln_f = nn.LayerNorm(config.d_embed, bias=False)
     
     # Krn
     self.W_q_diag = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
@@ -139,6 +140,7 @@ class GDGPTUltra(nn.Module):
       f_k = self.ff(f_k)
     
     # LM Head
+    f_k = self.ln_f(f_k)
     logits = self.lm_head(f_k)
     
     if targets is None:
