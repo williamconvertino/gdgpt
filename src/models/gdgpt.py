@@ -6,8 +6,8 @@ from dataclasses import dataclass
 
 @dataclass
 class GDGPTConfig:
-  context_size: int
   vocab_size: int
+  context_size: int = 256
   d_embed: int = 512
   n_head: int = 8
   n_layer: int = 1

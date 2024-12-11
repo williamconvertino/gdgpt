@@ -3,6 +3,8 @@ from util import load_most_recent_checkpoint, get_model_class
 import sys
 import re
 
+TINYSTORIES_TOKENIZER_VOCAB_SIZE = 10002
+
 def run_experiment(model, num_epochs_trained=0):
   pass
 
@@ -13,7 +15,7 @@ if __name__ == "__main__":
   
   model_class, model_config_class = get_model_class(model_name)
   
-  config = model_config_class()
+  config = model_config_class(vocab_size=TINYSTORIES_TOKENIZER_VOCAB_SIZE)
   
   # Extract model parameters
   head_regex = re.compile(r'(\d+)H')
