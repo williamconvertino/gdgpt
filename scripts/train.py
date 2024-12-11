@@ -50,6 +50,11 @@ if __name__ == "__main__":
     if layer_search:
       config.n_layer = int(layer_search.group(1))
     
+    d_embed_regex = re.compile(r'(\d+)D')
+    d_embed_search = d_embed_regex.search(experiment_params)
+    if d_embed_search:
+      config.d_embed = int(d_embed_search.group(1))
+    
     ff_regex = re.compile(r'ff=(\w+)')
     ff_search = ff_regex.search(experiment_params)
     if ff_search:
