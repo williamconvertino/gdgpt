@@ -39,8 +39,8 @@ class GDGPTUltra(nn.Module):
     self.ln_p = nn.LayerNorm(config.d_embed, bias=False)
     
     # Krn
-    self.W_q = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
-    self.W_k = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
+    self.W_q_diag = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
+    self.W_k_diag = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
     
     # GD step
     self.W_o_list = nn.ModuleList([nn.Linear(config.d_embed * config.n_head, config.d_embed, bias=False) for _ in range(config.n_layer)]) # Use a different projection matrix (learning rate) for each GD step
@@ -117,8 +117,11 @@ class GDGPTUltra(nn.Module):
     x_i = x_i.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     x_j = x_j.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     
-    K = x_i @ self.W_k
-    Q = x_j @ self.W_q
+    W_q = torch.diag_embed(self.W_q_diag)
+    W_k = torch.diag_embed(self.W_k_diag)
+    
+    K = x_i @ W_k
+    Q = x_j @ W_q
     
     causal_mask = torch.tril(torch.ones(S, S, device=e.device), diagonal=0).view(1, S, S).bool().logical_not()
     
