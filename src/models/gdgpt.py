@@ -67,7 +67,6 @@ class GDGPT(nn.Module):
   def get_num_params(self):
     total = sum(p.numel() for p in self.parameters())
     total -= self.wte.weight.numel() # We don't count our token embedding parameters
-    total -= self.lm_head.weight.numel() # Our weights are tied, so we exclude these parameters as well
     return total
       
   def gd_step(self, e, krn, f_k, k):
