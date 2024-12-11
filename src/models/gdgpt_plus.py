@@ -71,9 +71,9 @@ class GDGPTPlus(nn.Module):
       nn.init.normal_(self.W_o_list[k].weight, mean=0, std=0.02)
     
   def get_num_params(self):
-    total = sum(p.numel() for p in self.parameters())
-    total -= self.wte.weight.numel() # We don't count our token embedding parameters
-    return total
+    num_parameters = sum(p.numel() for p in self.parameters())
+    num_parameters -= self.wte.weight.numel() # We don't count our token embedding parameters
+    return num_parameters
       
   def gd_step(self, e, krn, f_k, k):
     B, S, _ = e.size()
