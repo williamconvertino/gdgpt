@@ -40,6 +40,7 @@ class GDGPTMax(nn.Module):
     self.ln_e = nn.LayerNorm(config.d_embed, bias=False)
     self.ln_p = nn.LayerNorm(config.d_embed, bias=False)
     self.ln_f = nn.LayerNorm(config.d_embed, bias=False)
+    self.ln_ff = nn.LayerNorm(config.d_embed, bias=False)
     
     # Krn
     self.W_q = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
@@ -141,7 +142,7 @@ class GDGPTMax(nn.Module):
       
     # FF
     if self.config.use_ff:
-      f_k = f_k + self.ff(f_k)
+      f_k = f_k + self.ff(self.ln_ff(f_k))
     
     # LM Head
     f_k = self.ln_f(f_k)
