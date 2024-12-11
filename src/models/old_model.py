@@ -20,7 +20,7 @@ class OldModelConfig:
   dropout: float = 0.1
   
   attn_kernel_fn: str = 'softmax'
-  use_ff: bool = True
+  use_ff: bool = False
   end_ff: bool = False
   use_ppe: bool = False
   use_nto: bool = False
