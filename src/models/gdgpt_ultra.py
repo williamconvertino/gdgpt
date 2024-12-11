@@ -35,6 +35,8 @@ class GDGPTUltra(nn.Module):
     # Regularization
     self.drop_e = nn.Dropout(0.1)
     self.drop_p = nn.Dropout(0.1)
+    self.krn_dropout = nn.Dropout(0.1)
+    self.step_dropout = nn.Dropout(0.1)
     self.ln_e = nn.LayerNorm(config.d_embed, bias=False)
     self.ln_p = nn.LayerNorm(config.d_embed, bias=False)
     self.ln_f = nn.LayerNorm(config.d_embed, bias=False)
@@ -94,6 +96,8 @@ class GDGPTUltra(nn.Module):
     delta_f_k = self.N_reg[:S] * delta_f_k
     delta_f_k = self.W_o_list[k](delta_f_k.transpose(1, 2).contiguous().view(B, S, -1))
     
+    delta_f_k = self.step_dropout(delta_f_k)
+    
     return f_k + delta_f_k
   
   def forward(self, x, targets=None):
@@ -129,6 +133,8 @@ class GDGPTUltra(nn.Module):
     krn = Q @ K.transpose(-1, -2) / math.sqrt(self.config.d_embed) # Divide by sqrt(d) for numerical stability, common in GPT
     krn = krn.masked_fill(causal_mask, float('-inf'))
     krn = F.softmax(krn, dim=-1)
+    
+    krn = self.krn_dropout(krn)
     
     # GD steps
     f_k = torch.zeros_like(e, device=device)
