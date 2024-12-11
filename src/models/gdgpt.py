@@ -82,7 +82,7 @@ class GDGPT(nn.Module):
     
     # Compute delta f_k
     delta_f_k = krn @ V.unsqueeze(1)
-    delta_f_k = self.N_reg * delta_f_k
+    delta_f_k = self.N_reg[:S] * delta_f_k
     delta_f_k = self.W_o_list[k](delta_f_k.transpose(1, 2).contiguous().view(B, S, -1))
     
     return f_k + delta_f_k
