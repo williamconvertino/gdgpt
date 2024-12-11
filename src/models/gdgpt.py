@@ -129,7 +129,7 @@ class GDGPT(nn.Module):
     if targets is None:
       return logits, None
     
-    loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))
+    loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.contiguous().view(-1))
     return logits, loss
     
   def generate(self, x, max_new_tokens=100, eos_token=None):
