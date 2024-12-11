@@ -94,7 +94,7 @@ class GDGPT(nn.Module):
     
     # Embeddings
     e = self.wte(x)
-    p = self.wpe(torch.arange(S + 1, device=device).unsqueeze(0))
+    p = self.wpe(torch.arange(0, S + 1, device=device)).repeat(B, 1, 1)
     
     # Krn
     x_i = p[:, :-1, :] # x_i only uses tokens 1-N
