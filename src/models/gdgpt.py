@@ -21,7 +21,9 @@ class GDGPTConfig:
     assert self.attn_fn in ['softmax', 'linear', 'rbf'], 'Invalid attention function'
 
 class GDGPT(nn.Module):
+  
   def __init__(self, config):
+    super().__init__()
     
     self.config = config
     self.name = 'GDGPT' + config.get_extension()
