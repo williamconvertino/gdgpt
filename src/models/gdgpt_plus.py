@@ -40,6 +40,7 @@ class GDGPTPlus(nn.Module):
     
     # Krn
     self.W_qk_diag = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
+    self.krn_dropout = nn.Dropout(0.1)
     
     # GD step
     self.W_o_list = nn.ModuleList([nn.Linear(config.d_embed * config.n_head, config.d_embed, bias=False) for _ in range(config.n_layer)]) # Use a different projection matrix (learning rate) for each GD step
@@ -49,15 +50,13 @@ class GDGPTPlus(nn.Module):
     # FF
     if config.use_ff:
       self.ff = nn.Sequential(
+        nn.LayerNorm(config.d_embed, bias=False),
         nn.Linear(config.d_embed, 4 * config.d_embed),
         nn.GELU(),
-        nn.Linear(4 * config.d_embed, config.d_embed)
+        nn.Linear(4 * config.d_embed, config.d_embed),
+        nn.Dropout(0.1)
       )
-    
-    # LM Head
-    self.lm_head = nn.Linear(config.d_embed, config.vocab_size, bias=False)
-    self.wte.weight = self.lm_head.weight # Weight tying, crucial for GD
-    
+  
     # Weight initialization
     self._init_weights()
     print(f'Initialized model {self.name} with {self.get_num_params()/1e6:.2f}M parameters')
@@ -66,7 +65,6 @@ class GDGPTPlus(nn.Module):
     nn.init.normal_(self.wte.weight, mean=0, std=0.02)
     nn.init.normal_(self.wpe.weight, mean=0, std=0.02)
     nn.init.normal_(self.W_qk_diag, mean=0, std=0.02)
-    nn.init.normal_(self.lm_head.weight, mean=0, std=0.02)
     for k in range(self.config.n_layer):
       nn.init.normal_(self.W_o_list[k].weight, mean=0, std=0.02/math.sqrt(2 * self.config.n_layer))
     
@@ -125,6 +123,7 @@ class GDGPTPlus(nn.Module):
     krn = Q @ K.transpose(-1, -2) / math.sqrt(self.config.d_embed) # Divide by sqrt(d) for numerical stability, common in GPT
     krn = krn.masked_fill(causal_mask, float('-inf'))
     krn = F.softmax(krn, dim=-1)
+    krn = self.krn_dropout(krn)
     
     # GD steps
     f_k = torch.zeros_like(e, device=device)
@@ -136,7 +135,7 @@ class GDGPTPlus(nn.Module):
       f_k = self.ff(f_k)
     
     # LM Head
-    logits = self.lm_head(f_k)
+    logits = f_k @ self.ln_e(self.wte.weight).transpose(0, 1) # Add layernorm to final embedding matrix for mathematical consistency 
     
     if targets is None:
       return logits, None
