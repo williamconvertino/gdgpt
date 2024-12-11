@@ -11,7 +11,7 @@ class GDGPTConfig:
   d_embed: int = 512
   n_head: int = 8
   n_layer: int = 1
-  use_ff: bool = True
+  use_ff: bool = False
   attn_fn: str = 'softmax'
   
   def get_extension(self):

@@ -1,1 +1,1 @@
-from src.training.train import train_model
+from training.training import train_model
