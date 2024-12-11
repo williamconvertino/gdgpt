@@ -1,14 +1,29 @@
 import setup_paths
-from util import load_most_recent_checkpoint, get_model_class
 import sys
 import re
+import torch
+from util import load_most_recent_checkpoint, get_model_class
+from src.training import train_model
+from src.datasets import TinyStoriesDataset
+from src.tokenizers import TinyStoriesTokenizer
 
 TINYSTORIES_TOKENIZER_VOCAB_SIZE = 10002
 
-def run_experiment(model, num_epochs_trained=0):
-  pass
+def run_experiment(model, num_epochs_trained=0, seed=0):
+  
+  # Set seed
+  torch.manual_seed(seed)
+  
+  # Load tokenizer and datasets
+  tokenizer = TinyStoriesTokenizer()
+  train_dataset = TinyStoriesDataset(tokenizer, 'train', context_size=config.context_size)
+  val_dataset = TinyStoriesDataset(tokenizer, 'val', context_size=config.context_size)
+  
+  # Train the model
+  train_model(model, train_dataset, val_dataset)
 
 if __name__ == "__main__":
+  
   # Extract model
   model_name = sys.argv[1]
   experiment_params = sys.argv[2:]
