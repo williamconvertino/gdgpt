@@ -17,7 +17,9 @@ if __name__ == "__main__":
   
   config = model_config_class(vocab_size=TINYSTORIES_TOKENIZER_VOCAB_SIZE)
   
-  # Extract model parameters
+  resume_from_checkpoint = True
+  
+  # Extract model and experiment parameters
   if experiment_params:
     head_regex = re.compile(r'(\d+)H')
     head_search = head_regex.search(experiment_params)
@@ -33,13 +35,15 @@ if __name__ == "__main__":
     ff_search = ff_regex.search(experiment_params)
     if ff_search:
       config.feed_forward = ff_search.group(1).lower() == 'true'
-  
+      
+    resume_regex = re.compile(r'resume=(\w+)')
+    resume_search = resume_regex.search(experiment_params)
+    if resume_search and resume_search.group(1).lower() == 'false':
+      resume_from_checkpoint = False
+
   model = model_class(config)
-    
-  # Resume training from most recent checkpoint unless otherwise specified
-  resume_regex = re.compile(r'resume=(\w+)')
-  resume_search = resume_regex.search(experiment_params)
-  if not resume_search or resume_search.group(1).lower() == 'true':
+  
+  if resume_from_checkpoint:
     model, num_epochs_trained = load_most_recent_checkpoint(model)
     
   # Run experiment
