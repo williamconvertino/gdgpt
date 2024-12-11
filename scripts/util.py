@@ -2,6 +2,7 @@ import importlib
 
 def get_model_class(model_name):
   def _get_attr_case_insensitive(module, name):
+    name = name.replace('_', '')
     for attr in dir(module):
       if attr.lower() == name.lower():
         return getattr(module, attr)
