@@ -144,8 +144,8 @@ class OldModel(nn.Module):
     e = self.ln_e(e)
     p = self.ln_p(p)
 
-    x_i = p[:, :-1, :] + e
-    x_j = p[:, 1:, :] + self.e_learned
+    x_i = p[:, :-1, :]
+    x_j = p[:, 1:, :]
     
     # Kernel
     K = x_i.repeat(1, 1, self.n_head).view(B, S, self.n_head, self.d_embed).transpose(1, 2) # Only use first N positional embeddings for key
