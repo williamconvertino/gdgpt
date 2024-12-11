@@ -67,8 +67,8 @@ class GDGPTPlus(nn.Module):
     nn.init.normal_(self.wpe.weight, mean=0, std=0.02)
     nn.init.normal_(self.W_qk_diag, mean=0, std=0.02)
     nn.init.normal_(self.lm_head.weight, mean=0, std=0.02)
-    for i in range(self.config.n_head):
-      nn.init.normal_(self.W_o_list.weight[i], mean=0, std=0.02)
+    for k in range(self.config.n_layer):
+      nn.init.normal_(self.W_o_list[k].weight, mean=0, std=0.02)
     
   def get_num_params(self):
     total = sum(p.numel() for p in self.parameters())
