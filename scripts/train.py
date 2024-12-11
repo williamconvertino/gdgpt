@@ -46,7 +46,7 @@ if __name__ == "__main__":
     if layer_search:
       config.n_layer = int(layer_search.group(1))
     
-    ff_regex = re.compile(r'FF=(\w+)')
+    ff_regex = re.compile(r'FF=(\w+)|ff=(\w+)')
     ff_search = ff_regex.search(experiment_params)
     if ff_search:
       config.use_ff = ff_search.group(1).lower() == 'true'
