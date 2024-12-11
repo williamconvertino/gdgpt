@@ -30,7 +30,7 @@ class GDGPT(nn.Module):
     
     # Embeddings
     self.wte = nn.Embedding(config.vocab_size, config.d_embed)
-    self.wpe = nn.Embedding(config.context_size, config.d_embed)
+    self.wpe = nn.Embedding(config.context_size + 1, config.d_embed)
     
     # Krn
     self.W_qk_diag = nn.Parameter(torch.zeros(config.n_head, config.d_embed))

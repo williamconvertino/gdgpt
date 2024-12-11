@@ -30,7 +30,7 @@ class GDGPTUltra(nn.Module):
     
     # Embeddings
     self.wte = nn.Embedding(config.vocab_size, config.d_embed)
-    self.wpe = nn.Embedding(config.context_size, config.d_embed)
+    self.wpe = nn.Embedding(config.context_size + 1, config.d_embed)
     
     # Regularization
     self.drop_e = nn.Dropout(0.1)
