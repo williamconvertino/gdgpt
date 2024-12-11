@@ -24,19 +24,13 @@ class GDGPTPlus(nn.Module):
   
   def __init__(self, config):
     super().__init__()
-    
+      
     self.config = config
     self.name = 'GDGPTPlus_' + config.get_extension()
     
     # Embeddings
     self.wte = nn.Embedding(config.vocab_size, config.d_embed)
     self.wpe = nn.Embedding(config.context_size, config.d_embed)
-    
-    # Regularization
-    e = self.drop_e(e)
-    p = self.drop_p(p)
-    e = self.ln_e(e)
-    p = self.ln_p(p)
     
     # Regularization
     self.drop_e = nn.Dropout(0.1)
@@ -90,11 +84,11 @@ class GDGPTPlus(nn.Module):
     avg_wte = avg_wte / R.sum(dim=1).unsqueeze(-1)
     
     # Subtract weighted average from token embeddings
-    V = (e - avg_wte)
+    V = e - avg_wte
     
     # Compute delta f_k
-    delta_f_k = krn @ V.unsqueeze(1)
-    delta_f_k = self.N_reg[:S] * delta_f_k
+    delta_f_k = krn @ V.unsqueeze(-2)
+    delta_f_k = self.N_reg * delta_f_k
     delta_f_k = self.W_o_list[k](delta_f_k.transpose(1, 2).contiguous().view(B, S, -1))
     
     return f_k + delta_f_k
@@ -106,7 +100,13 @@ class GDGPTPlus(nn.Module):
     
     # Embeddings
     e = self.wte(x)
-    p = self.wpe(torch.arange(0, S + 1, device=device)).repeat(B, 1, 1)
+    p = self.wpe(torch.arange(S + 1, device=device).unsqueeze(0))
+    
+    # Regularization
+    e = self.drop_e(e)
+    p = self.drop_p(p)
+    e = self.ln_e(e)
+    p = self.ln_p(p)
     
     # Krn
     x_i = p[:, :-1, :] # x_i only uses tokens 1-N
@@ -141,7 +141,7 @@ class GDGPTPlus(nn.Module):
     if targets is None:
       return logits, None
     
-    loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.contiguous().view(-1))
+    loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))
     return logits, loss
     
   def generate(self, x, max_new_tokens=100, eos_token=None):
