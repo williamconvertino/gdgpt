@@ -33,12 +33,6 @@ class GDGPTPlus(nn.Module):
     self.wpe = nn.Embedding(config.context_size, config.d_embed)
     
     # Regularization
-    e = self.drop_e(e)
-    p = self.drop_p(p)
-    e = self.ln_e(e)
-    p = self.ln_p(p)
-    
-    # Regularization
     self.drop_e = nn.Dropout(0.1)
     self.drop_p = nn.Dropout(0.1)
     self.ln_e = nn.LayerNorm(config.d_embed, bias=False)
@@ -107,6 +101,12 @@ class GDGPTPlus(nn.Module):
     # Embeddings
     e = self.wte(x)
     p = self.wpe(torch.arange(0, S + 1, device=device)).repeat(B, 1, 1)
+    
+    # Regularization
+    e = self.drop_e(e)
+    p = self.drop_p(p)
+    e = self.ln_e(e)
+    p = self.ln_p(p)
     
     # Krn
     x_i = p[:, :-1, :] # x_i only uses tokens 1-N
