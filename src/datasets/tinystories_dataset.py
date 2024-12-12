@@ -16,6 +16,8 @@ class TinyStoriesDataset(Dataset):
     
   def __init__(self, tokenizer, split, context_size):
     
+    self.name = 'TinyStories'
+    
     file_path = f'{DATASET_DIR}/{tokenizer.name}/{split}.bin'    
     
     if not os.path.exists(file_path):
