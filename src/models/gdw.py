@@ -9,7 +9,7 @@ class GDWConfig:
   vocab_size: int
   context_size: int = 256
   d_embed: int = 512
-  n_head: int = 8
+  n_head: int = 4
   n_layer: int = 1
   use_ff: bool = False
   wqk: str = 'diag'
@@ -155,8 +155,8 @@ class GDW(nn.Module):
     p_x_i = p[:, :-1, :] # x_i only uses tokens 1-N
     p_x_j = p[:, 1:, :] # x_j only uses tokens 2-N+1
     
-    e_x_i = e[:, :-1, :] # Both e_x_i and e_x_j use tokens 1-N
-    e_x_j = e[:, :-1, :] 
+    e_x_i = e # Both e_x_i and e_x_j use tokens 1-N
+    e_x_j = e 
     
     p_x_i = p_x_i.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     p_x_j = p_x_j.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
