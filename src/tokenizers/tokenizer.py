@@ -14,5 +14,7 @@ class Tokenizer(GPT2TokenizerFast):
   def generate_tokenizer_files(dataset, tokenizer_path, vocab_size, min_frequency=5):
     os.makedirs(tokenizer_path, exist_ok=True)
     bpe = ByteLevelBPETokenizer()
+    print('Training tokenizer...')
     bpe.train_from_iterator(dataset, vocab_size=vocab_size - 1, min_frequency=min_frequency, special_tokens=['<eos>']) # -1 to account for the <eos> token
+    print('Saving tokenizer...')
     bpe.save_model(tokenizer_path)
