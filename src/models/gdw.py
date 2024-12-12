@@ -117,7 +117,7 @@ class GDW(nn.Module):
   
   def calculate_krn(self, Q, K):
     
-    S = Q.size(1)
+    S = Q.size(2)
     device = Q.device
     
     causal_mask = torch.tril(torch.ones(S, S, device=device), diagonal=0).view(1, S, S).bool().logical_not()
