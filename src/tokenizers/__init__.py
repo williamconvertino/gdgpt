@@ -1,1 +1,2 @@
+from src.tokenizers.tokenizer import Tokenizer
 from src.tokenizers.tinystories_tokenizer import TinyStoriesTokenizer
