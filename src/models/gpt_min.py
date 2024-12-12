@@ -61,12 +61,12 @@ class AttentionBlock(nn.Module):
     B, S, _ = x.size()
     device = x.device
     
-    x = x.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
+    q = k = v = x.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     
     # Attention  
-    K = x @ self.W_k
-    Q = x @ self.W_q
-    V = x @ self.W_v
+    K = k @ self.W_k
+    Q = q @ self.W_q
+    V = v @ self.W_v
     
     causal_mask = torch.tril(torch.ones(S, S, device=device), diagonal=0).view(1, S, S).bool().logical_not()
     
