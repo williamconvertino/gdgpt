@@ -5,7 +5,7 @@ from torch.nn import functional as F
 from dataclasses import dataclass
 
 @dataclass
-class GDGPTMinConfig:
+class GDConfig:
   vocab_size: int
   context_size: int = 256
   d_embed: int = 512
@@ -22,17 +22,21 @@ class GDGPTMinConfig:
     assert self.wqk in ['diag', 'full'], 'Invalid W_qk type, must be "diag" or "full"'
     assert self.attn_fn in ['softmax', 'linear', 'rbf'], 'Invalid attention function, must be "softmax", "linear" or "rbf"'
 
-class GDGPTMin(nn.Module):
+class GD(nn.Module):
   
   def __init__(self, config):
     super().__init__()
     
     self.config = config
-    self.name = 'GDGPTMin_' + config.get_extension()
+    self.name = 'GD_' + config.get_extension()
     
     # Embeddings
     self.wte = nn.Embedding(config.vocab_size, config.d_embed)
     self.wpe = nn.Embedding(config.context_size + 1, config.d_embed)
+    
+    # Normalization
+    self.ln_e = nn.LayerNorm(config.d_embed, elementwise_affine=False)
+    self.ln_p = nn.LayerNorm(config.d_embed, elementwise_affine=False)
     
     # Krn
     if config.wqk == 'diag':
@@ -96,7 +100,7 @@ class GDGPTMin(nn.Module):
     delta_f_k = self.N_reg[:S] * delta_f_k
     delta_f_k = self.W_o_list[k](delta_f_k.transpose(1, 2).contiguous().view(B, S, -1))
     
-    return delta_f_k
+    return f_k + delta_f_k
   
   def forward(self, x, targets=None):
     
@@ -106,6 +110,9 @@ class GDGPTMin(nn.Module):
     # Embeddings
     e = self.wte(x)
     p = self.wpe(torch.arange(0, S + 1, device=device)).repeat(B, 1, 1)
+        
+    e = self.ln_e(e)
+    p = self.ln_p(p)
     
     # Krn
     x_i = p[:, :-1, :] # x_i only uses tokens 1-N
@@ -126,7 +133,7 @@ class GDGPTMin(nn.Module):
     
     if self.config.attn_fn == 'softmax':
       krn = Q @ K.transpose(-1, -2)
-      krn = krn / math.sqrt(self.config.d_embed) # Divide by sqrt(d) for numerical stability, common in GPT
+      krn = krn / math.sqrt(self.config.d_embed) # Divide by sqrt(d) for numerical stability, common in 
       krn = krn.masked_fill(causal_mask, float('-inf'))
       krn = F.softmax(krn, dim=-1)
     elif self.config.attn_fn == 'linear':
@@ -142,14 +149,14 @@ class GDGPTMin(nn.Module):
     # GD steps
     f_k = torch.zeros_like(e, device=device)
     for k in range(self.config.n_layer):
-      f_k = f_k + self.gd_step(e, krn, f_k, k)
+      f_k = self.gd_step(e, krn, f_k, k)
       
     # FF
     if self.config.use_ff:
       f_k = f_k + self.ff(f_k)
     
     # LM Head
-    logits = f_k @ self.wte.weight.transpose(0, 1)
+    logits = f_k @ self.ln_e(self.wte.weight).transpose(0, 1) # Need to use the same normalization as the embeddings for consistency
     
     if targets is None:
       return logits, None
