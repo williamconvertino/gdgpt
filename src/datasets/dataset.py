@@ -12,6 +12,7 @@ class Dataset(IterableDataset):
     
     self.file_path = file_path
     self.context_size = context_size
+    self.stride = context_size // 2
     self.batch_size = batch_size
     self.shuffle = shuffle
     self.shuffle_buffer_size = shuffle_buffer_size
