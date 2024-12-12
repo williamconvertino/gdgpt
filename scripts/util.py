@@ -70,6 +70,16 @@ def get_model_from_args():
     resume_search = resume_regex.search(experiment_params)
     if resume_search and resume_search.group(1).lower() == 'false':
       resume_from_checkpoint = False
+      
+    head_regex = re.compile(r'(\d+)He')
+    head_search = head_regex.search(experiment_params)
+    if head_search:
+      config.n_head_e = int(head_search.group(1))
+      
+    head_regex = re.compile(r'(\d+)Hp')
+    head_search = head_regex.search(experiment_params)
+    if head_search:
+      config.n_head_p = int(head_search.group(1))
 
   model = model_class(config)
   

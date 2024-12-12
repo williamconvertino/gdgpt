@@ -9,14 +9,16 @@ class GDWConfig:
   vocab_size: int
   context_size: int = 256
   d_embed: int = 512
-  n_head: int = 4
+  n_head_e: int = 4
+  n_head_p: int = 4
+  n_head: int = 0 # Only here for compatibility
   n_layer: int = 1
   use_ff: bool = False
   wqk: str = 'diag'
   attn_fn: str = 'softmax'
   
   def get_extension(self):
-    return f'{self.d_embed}D_{self.n_layer}L_{self.n_head}H_FF={self.use_ff}_wqk={self.wqk}_attn={self.attn_fn}'
+    return f'{self.d_embed}D_{self.n_layer}L_{self.n_head_e}He_{self.n_head_p}Hp_FF={self.use_ff}_wqk={self.wqk}_attn={self.attn_fn}'
   
   def __post_init__(self):
     assert self.wqk in ['diag', 'full'], 'Invalid W_qk type, must be "diag" or "full"'
@@ -40,18 +42,15 @@ class GDW(nn.Module):
     
     # Krn
     if config.wqk == 'diag':
-      self.p_W_qk_diag = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
-      self.e_W_qk_diag = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
+      self.p_W_qk_diag = nn.Parameter(torch.zeros(config.n_head_p, config.d_embed))
+      self.e_W_qk_diag = nn.Parameter(torch.zeros(config.n_head_e, config.d_embed))
     else:
-      self.p_W_qk = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
-      self.e_W_qk = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
-    
-    if config.attn_fn == 'rbf':
-      self.gamma = nn.Parameter(torch.tensor(config.n_head, 1, 1))
+      self.p_W_qk = nn.Parameter(torch.zeros(config.n_head_p, config.d_embed, config.d_embed))
+      self.e_W_qk = nn.Parameter(torch.zeros(config.n_head_e, config.d_embed, config.d_embed))
     
     # GD step
-    self.p_W_o_list = nn.ModuleList([nn.Linear(config.d_embed * config.n_head, config.d_embed, bias=False) for _ in range(config.n_layer)]) # Use a different projection matrix (learning rate) for each GD step
-    self.e_W_o_list = nn.ModuleList([nn.Linear(config.d_embed * config.n_head, config.d_embed, bias=False) for _ in range(config.n_layer)])
+    self.p_W_o_list = nn.ModuleList([nn.Linear(config.d_embed * config.n_head_p, config.d_embed, bias=False) for _ in range(config.n_layer)]) # Use a different projection matrix (learning rate) for each GD step
+    self.e_W_o_list = nn.ModuleList([nn.Linear(config.d_embed * config.n_head_e, config.d_embed, bias=False) for _ in range(config.n_layer)])
     N_reg = 1.0 / torch.arange(1, config.context_size + 1, device=self.wte.weight.device).unsqueeze(1).float() # 1/N term
     self.register_buffer('N_reg', N_reg)
     
@@ -158,11 +157,11 @@ class GDW(nn.Module):
     e_x_i = e # Both e_x_i and e_x_j use tokens 1-N
     e_x_j = e 
     
-    p_x_i = p_x_i.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
-    p_x_j = p_x_j.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
+    p_x_i = p_x_i.repeat(1, 1, self.config.n_head_p).view(B, S, self.config.n_head_p, self.config.d_embed).transpose(1, 2)
+    p_x_j = p_x_j.repeat(1, 1, self.config.n_head_p).view(B, S, self.config.n_head_p, self.config.d_embed).transpose(1, 2)
     
-    e_x_i = e_x_i.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
-    e_x_j = e_x_j.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
+    e_x_i = e_x_i.repeat(1, 1, self.config.n_head_e).view(B, S, self.config.n_head_e, self.config.d_embed).transpose(1, 2)
+    e_x_j = e_x_j.repeat(1, 1, self.config.n_head_e).view(B, S, self.config.n_head_e, self.config.d_embed).transpose(1, 2)
     
     if self.config.wqk == 'diag':
       p_W_qk = torch.diag_embed(self.p_W_qk_diag)
