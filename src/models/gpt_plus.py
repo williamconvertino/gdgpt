@@ -114,7 +114,7 @@ class GPTPlus(nn.Module):
     self.wpe = nn.Embedding(config.context_size + 1, config.d_embed)
   
     # Normalization
-    self.ln_out = nn.LayerNorm(config.vocab_size, elementwise_affine=False)
+    self.ln_out = nn.LayerNorm(config.d_embed, elementwise_affine=False)
 
     # Attention
     self.attn = nn.ModuleList([AttentionBlock(config) for _ in range(config.n_layer)])

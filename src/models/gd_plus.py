@@ -114,7 +114,7 @@ class GDPlus(nn.Module):
     e = self.wte(x)
     p = self.wpe(torch.arange(0, S + 1, device=device)).repeat(B, 1, 1)
     
-    # Regularization and normalization
+    # Normalization
     e = self.ln_e(e)
     p = self.ln_p(p)
     
