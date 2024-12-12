@@ -28,7 +28,7 @@ class GDGPTMin(nn.Module):
     super().__init__()
     
     self.config = config
-    self.name = 'GDGPT_' + config.get_extension()
+    self.name = 'GDGPTMin_' + config.get_extension()
     
     # Embeddings
     self.wte = nn.Embedding(config.vocab_size, config.d_embed)
