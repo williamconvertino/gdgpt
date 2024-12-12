@@ -149,7 +149,7 @@ class GDGPT(nn.Module):
       f_k = f_k + self.ff(f_k)
     
     # LM Head
-    logits = self.lm_head(f_k)
+    logits = f_k @ self.wte.weight.transpose(0, 1)
     
     if targets is None:
       return logits, None
