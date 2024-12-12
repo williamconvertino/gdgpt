@@ -4,6 +4,8 @@ import torch
 import json
 from torch.nn import functional as F
 
+from src.visualization import visualize_loss
+
 LEARNING_RATE = 1e-4
 WEIGHT_DECAY = 1e-2
 
@@ -120,3 +122,5 @@ def train_model(model, train_dataset, val_dataset, max_epochs=None):
     
     with open(f'{RESULTS_DIR}/{model.name}.json', 'w') as f:
       json.dump(results, f)
+      
+    visualize_loss((results['train_losses'], "Train"), (results['val_losses'], "Test"), title=f"{model.name} Training Losses (Epoch {epoch})")
