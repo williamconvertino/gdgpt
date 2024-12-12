@@ -5,48 +5,37 @@ from torch.nn import functional as F
 from dataclasses import dataclass
 
 @dataclass
-class GDGPTMinConfig:
+class GPTMinConfig:
   vocab_size: int
   context_size: int = 256
   d_embed: int = 512
   n_head: int = 8
   n_layer: int = 1
   use_ff: bool = False
-  wqk: str = 'diag'
   attn_fn: str = 'softmax'
   
   def get_extension(self):
     return f'{self.d_embed}D_{self.n_layer}L_{self.n_head}H_FF={self.use_ff}_wqk={self.wqk}_attn={self.attn_fn}'
   
   def __post_init__(self):
-    assert self.wqk in ['diag', 'full'], 'Invalid W_qk type, must be "diag" or "full"'
     assert self.attn_fn in ['softmax', 'linear', 'rbf'], 'Invalid attention function, must be "softmax", "linear" or "rbf"'
 
-class GDGPTMin(nn.Module):
+class AttentionBlock(nn.Module):
   
   def __init__(self, config):
     super().__init__()
     
     self.config = config
-    self.name = 'GDGPT_' + config.get_extension()
     
-    # Embeddings
-    self.wte = nn.Embedding(config.vocab_size, config.d_embed)
-    self.wpe = nn.Embedding(config.context_size + 1, config.d_embed)
+    # Attn
+    self.W_q = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
+    self.W_k = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
+    self.W_v = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
     
-    # Krn
-    if config.wqk == 'diag':
-      self.W_qk_diag = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
-    else:
-      self.W_qk = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
+    self.W_o = nn.Linear(config.d_embed * config.n_head, config.d_embed, bias=False)
     
     if config.attn_fn == 'rbf':
       self.gamma = nn.Parameter(torch.tensor(config.n_head, 1, 1))
-    
-    # GD step
-    self.W_o_list = nn.ModuleList([nn.Linear(config.d_embed * config.n_head, config.d_embed, bias=False) for _ in range(config.n_layer)]) # Use a different projection matrix (learning rate) for each GD step
-    N_reg = 1.0 / torch.arange(1, config.context_size + 1, device=self.wte.weight.device).unsqueeze(1).float() # 1/N term
-    self.register_buffer('N_reg', N_reg)
     
     # FF
     if config.use_ff:
@@ -58,6 +47,68 @@ class GDGPTMin(nn.Module):
         nn.Dropout(0.1)
       )
   
+  def _init_weights(self):
+    nn.init.normal_(self.W_q, mean=0, std=0.02)
+    nn.init.normal_(self.W_k, mean=0, std=0.02)
+    nn.init.normal_(self.W_v, mean=0, std=0.02)
+    nn.init.normal_(self.W_o.weight, mean=0, std=0.02/math.sqrt(2 * self.config.n_layer))
+    if self.config.use_ff:
+      nn.init.normal_(self.ff[1].weight, mean=0, std=0.02)
+      nn.init.normal_(self.ff[3].weight, mean=0, std=0.02)
+      
+  def forward(self, x):
+    
+    B, S, _ = x.size()
+    device = x.device
+    
+    x = x.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
+    
+    # Attention  
+    K = x @ self.W_k
+    Q = x @ self.W_q
+    V = x @ self.W_v
+    
+    causal_mask = torch.tril(torch.ones(S, S, device=device), diagonal=0).view(1, S, S).bool().logical_not()
+    
+    if self.config.attn_fn == 'softmax':
+      attn = Q @ K.transpose(-1, -2)
+      attn = attn / math.sqrt(self.config.d_embed)
+      attn = attn.masked_fill(causal_mask, float('-inf'))
+      attn = F.softmax(attn, dim=-1)
+    elif self.config.attn_fn == 'linear':
+      attn = Q @ K.transpose(-1, -2)
+      attn = attn / math.sqrt(self.config.d_embed)
+      attn = attn.masked_fill(causal_mask, 0)
+    elif self.config.attn_fn == 'rbf':
+      attn = -torch.cdist(Q, K, p=2).pow(2)
+      attn = attn / (2 * self.gamma + 1e-6) # Add small epsilon for numerical stability
+      attn = torch.exp(attn)
+      attn = attn.masked_fill(causal_mask, 0)
+    
+    attn = attn @ V
+    
+    x = self.W_o(attn.transpose(1, 2).contiguous().view(B, S, -1))
+    
+    if self.config.use_ff:
+      x = x + self.ff(x)
+    
+    return x
+    
+class GPTMin(nn.Module):
+  
+  def __init__(self, config):
+    super().__init__()
+    
+    self.config = config
+    self.name = 'GDGPT_' + config.get_extension()
+    
+    # Embeddings
+    self.wte = nn.Embedding(config.vocab_size, config.d_embed)
+    self.wpe = nn.Embedding(config.context_size + 1, config.d_embed)
+  
+    # Attention
+    self.attn = nn.ModuleList([AttentionBlock(config) for _ in range(config.n_layer)])
+  
     # Weight initialization
     self._init_weights()
     print(f'Initialized model {self.name} with {self.get_num_params()/1e6:.2f}M parameters')
@@ -65,38 +116,11 @@ class GDGPTMin(nn.Module):
   def _init_weights(self):
     nn.init.normal_(self.wte.weight, mean=0, std=0.02)
     nn.init.normal_(self.wpe.weight, mean=0, std=0.02)
-    if self.config.wqk == 'diag':
-      nn.init.normal_(self.W_qk_diag, mean=0, std=0.02)
-    else:
-      nn.init.normal_(self.W_qk, mean=0, std=0.02)
-    for k in range(self.config.n_layer):
-      nn.init.normal_(self.W_o_list[k].weight, mean=0, std=0.02/math.sqrt(2 * self.config.n_layer))
-    if self.config.use_ff:
-      nn.init.normal_(self.ff[1].weight, mean=0, std=0.02)
-      nn.init.normal_(self.ff[3].weight, mean=0, std=0.02)
     
   def get_num_params(self):
     num_parameters = sum(p.numel() for p in self.parameters())
     num_parameters -= self.wte.weight.numel() # We don't count our token embedding parameters
     return num_parameters
-      
-  def gd_step(self, e, krn, f_k, k):
-    B, S, _ = e.size()
-    
-    # Compute weighted average of token embedding vectors
-    R = torch.softmax(self.wte.weight @ f_k.transpose(1, 2), dim=-1)
-    avg_wte = R.transpose(-1, -2) @ self.wte.weight
-    avg_wte = avg_wte / R.sum(dim=1).unsqueeze(-1)
-    
-    # Subtract weighted average from token embeddings
-    V = e - avg_wte
-    
-    # Compute delta f_k
-    delta_f_k = krn @ V.unsqueeze(1)
-    delta_f_k = self.N_reg[:S] * delta_f_k
-    delta_f_k = self.W_o_list[k](delta_f_k.transpose(1, 2).contiguous().view(B, S, -1))
-    
-    return delta_f_k
   
   def forward(self, x, targets=None):
     
@@ -105,51 +129,16 @@ class GDGPTMin(nn.Module):
     
     # Embeddings
     e = self.wte(x)
-    p = self.wpe(torch.arange(0, S + 1, device=device)).repeat(B, 1, 1)
+    p = self.wpe(torch.arange(0, S, device=device)).repeat(B, 1, 1)
     
-    # Krn
-    x_i = p[:, :-1, :] # x_i only uses tokens 1-N
-    x_j = p[:, 1:, :] # x_j only uses tokens 2-N+1
+    # Attn
+    x = p + e
     
-    x_i = x_i.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
-    x_j = x_j.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
-    
-    if self.config.wqk == 'diag':
-      W_qk = torch.diag_embed(self.W_qk_diag)
-    else:
-      W_qk = self.W_qk
-      
-    K = x_i @ W_qk
-    Q = x_j @ W_qk
-    
-    causal_mask = torch.tril(torch.ones(S, S, device=device), diagonal=0).view(1, S, S).bool().logical_not()
-    
-    if self.config.attn_fn == 'softmax':
-      krn = Q @ K.transpose(-1, -2)
-      krn = krn / math.sqrt(self.config.d_embed) # Divide by sqrt(d) for numerical stability, common in GPT
-      krn = krn.masked_fill(causal_mask, float('-inf'))
-      krn = F.softmax(krn, dim=-1)
-    elif self.config.attn_fn == 'linear':
-      krn = Q @ K.transpose(-1, -2)
-      krn = krn / math.sqrt(self.config.d_embed)
-      krn = krn.masked_fill(causal_mask, 0)
-    elif self.config.attn_fn == 'rbf':
-      krn = -torch.cdist(Q, K, p=2).pow(2)
-      krn = krn / (2 * self.gamma + 1e-6) # Add small epsilon for numerical stability
-      krn = torch.exp(krn)
-      krn = krn.masked_fill(causal_mask, 0)
-    
-    # GD steps
-    f_k = torch.zeros_like(e, device=device)
-    for k in range(self.config.n_layer):
-      f_k = f_k + self.gd_step(e, krn, f_k, k)
-      
-    # FF
-    if self.config.use_ff:
-      f_k = f_k + self.ff(f_k)
-    
+    for attn_block in self.attn:
+      x = x + attn_block(x)
+
     # LM Head
-    logits = f_k @ self.wte.weight.transpose(0, 1)
+    logits = x @ self.wte.weight.transpose(0, 1)
     
     if targets is None:
       return logits, None

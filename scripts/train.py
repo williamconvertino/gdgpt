@@ -60,6 +60,16 @@ if __name__ == "__main__":
     if ff_search:
       config.use_ff = ff_search.group(1).lower() == 'true'
   
+    attn_fn_regex = re.compile(r'attn=(\w+)')
+    attn_fn_search = attn_fn_regex.search(experiment_params)
+    if attn_fn_search:
+      config.attn_fn = attn_fn_search.group(1)
+      
+    wqk_regex = re.compile(r'wqk=(\w+)')
+    wqk_search = wqk_regex.search(experiment_params)
+    if wqk_search:
+      config.wqk = wqk_search.group(1)
+  
     resume_regex = re.compile(r'resume=(\w+)')
     resume_search = resume_regex.search(experiment_params)
     if resume_search and resume_search.group(1).lower() == 'false':

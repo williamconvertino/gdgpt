@@ -5,7 +5,7 @@ from torch.nn import functional as F
 from dataclasses import dataclass
 
 @dataclass
-class GDGPTMinConfig:
+class GDGPTConfig:
   vocab_size: int
   context_size: int = 256
   d_embed: int = 512
@@ -22,7 +22,7 @@ class GDGPTMinConfig:
     assert self.wqk in ['diag', 'full'], 'Invalid W_qk type, must be "diag" or "full"'
     assert self.attn_fn in ['softmax', 'linear', 'rbf'], 'Invalid attention function, must be "softmax", "linear" or "rbf"'
 
-class GDGPTMin(nn.Module):
+class GDGPT(nn.Module):
   
   def __init__(self, config):
     super().__init__()
@@ -33,6 +33,14 @@ class GDGPTMin(nn.Module):
     # Embeddings
     self.wte = nn.Embedding(config.vocab_size, config.d_embed)
     self.wpe = nn.Embedding(config.context_size + 1, config.d_embed)
+    
+    # Regularization and normalization
+    self.ln_e = nn.LayerNorm(config.d_embed, elementwise_affine=False)
+    self.ln_p = nn.LayerNorm(config.d_embed, elementwise_affine=False)
+    self.drop_p = nn.Dropout(0.1)
+    
+    self.krn_dropout = nn.Dropout(0.1)
+    self.ln_out = nn.LayerNorm(config.d_embed, elementwise_affine=False)
     
     # Krn
     if config.wqk == 'diag':
@@ -107,6 +115,12 @@ class GDGPTMin(nn.Module):
     e = self.wte(x)
     p = self.wpe(torch.arange(0, S + 1, device=device)).repeat(B, 1, 1)
     
+    # Regularization and normalization
+    p = self.drop_p(p)
+    
+    e = self.ln_e(e)
+    p = self.ln_p(p)
+    
     # Krn
     x_i = p[:, :-1, :] # x_i only uses tokens 1-N
     x_j = p[:, 1:, :] # x_j only uses tokens 2-N+1
@@ -139,6 +153,8 @@ class GDGPTMin(nn.Module):
       krn = torch.exp(krn)
       krn = krn.masked_fill(causal_mask, 0)
     
+    krn = self.krn_dropout(krn)
+    
     # GD steps
     f_k = torch.zeros_like(e, device=device)
     for k in range(self.config.n_layer):
@@ -148,8 +164,10 @@ class GDGPTMin(nn.Module):
     if self.config.use_ff:
       f_k = f_k + self.ff(f_k)
     
+    f_k = self.ln_out(f_k)
+    
     # LM Head
-    logits = f_k @ self.wte.weight.transpose(0, 1)
+    logits = f_k @ self.ln_e(self.wte.weight).transpose(0, 1) # Need to use the same normalization as the embeddings for consistency
     
     if targets is None:
       return logits, None

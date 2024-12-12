@@ -71,7 +71,7 @@ class Dataset(IterableDataset):
   def generate_data_file(dataset, file_path, tokenizer, buffer_size=1024):
     
     # Preprocess data
-    dataset.map(lambda x: Dataset.preprocess(x, tokenizer), batched=True, remove_columns=['text'])
+    dataset = dataset.map(lambda x: Dataset.preprocess(x, tokenizer), batched=True, remove_columns=['text'])
     file_size = sum([len(example) for example in dataset['input_ids']])
     
     # Initialize memmap array
