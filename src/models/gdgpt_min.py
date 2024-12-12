@@ -5,45 +5,43 @@ from torch.nn import functional as F
 from dataclasses import dataclass
 
 @dataclass
-class GDGPTUltraConfig:
+class GDGPTConfig:
   vocab_size: int
   context_size: int = 256
   d_embed: int = 512
   n_head: int = 8
   n_layer: int = 1
   use_ff: bool = False
+  diag_wqk: bool = True
   attn_fn: str = 'softmax'
   
   def get_extension(self):
-    return f'{self.n_layer}L_{self.n_head}H_FF={self.use_ff}_attn={self.attn_fn}'
+    w_qk = 'diag' if self.diag_wqk else 'full'
+    return f'{self.d_embed}D_{self.n_layer}L_{self.n_head}H_FF={self.use_ff}_wqk={w_qk}_attn={self.attn_fn}'
   
   def __post_init__(self):
     assert self.attn_fn in ['softmax', 'linear', 'rbf'], 'Invalid attention function'
 
-class GDGPTUltra(nn.Module):
+class GDGPT(nn.Module):
   
   def __init__(self, config):
     super().__init__()
     
     self.config = config
-    self.name = 'GDGPTUltra_' + config.get_extension()
+    self.name = 'GDGPT_' + config.get_extension()
     
     # Embeddings
     self.wte = nn.Embedding(config.vocab_size, config.d_embed)
     self.wpe = nn.Embedding(config.context_size + 1, config.d_embed)
     
-    # Regularization
-    self.drop_e = nn.Dropout(0.1)
-    self.drop_p = nn.Dropout(0.1)
-    self.krn_dropout = nn.Dropout(0.1)
-    self.step_dropout = nn.Dropout(0.1)
-    self.ln_e = nn.LayerNorm(config.d_embed, bias=False)
-    self.ln_p = nn.LayerNorm(config.d_embed, bias=False)
-    self.ln_f = nn.LayerNorm(config.d_embed, bias=False)
-    
     # Krn
-    self.W_q_diag = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
-    self.W_k_diag = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
+    if config.diag_wqk:
+      self.W_qk_diag = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
+    else:
+      self.W_qk = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
+    
+    if config.attn_fn == 'rbf':
+      self.gamma = nn.Parameter(torch.tensor(config.n_head, 1, 1))
     
     # GD step
     self.W_o_list = nn.ModuleList([nn.Linear(config.d_embed * config.n_head, config.d_embed, bias=False) for _ in range(config.n_layer)]) # Use a different projection matrix (learning rate) for each GD step
@@ -53,15 +51,13 @@ class GDGPTUltra(nn.Module):
     # FF
     if config.use_ff:
       self.ff = nn.Sequential(
-        nn.Linear(config.d_embed, 4 * config.d_embed),
+        nn.LayerNorm(config.d_embed, elementwise_affine=False),
+        nn.Linear(config.d_embed, 4 * config.d_embed, bias=False),
         nn.GELU(),
-        nn.Linear(4 * config.d_embed, config.d_embed)
+        nn.Linear(4 * config.d_embed, config.d_embed, bias=False),
+        nn.Dropout(0.1)
       )
-    
-    # LM Head
-    self.lm_head = nn.Linear(config.d_embed, config.vocab_size, bias=False)
-    self.wte.weight = self.lm_head.weight # Weight tying, crucial for GD
-    
+  
     # Weight initialization
     self._init_weights()
     print(f'Initialized model {self.name} with {self.get_num_params()/1e6:.2f}M parameters')
@@ -69,11 +65,15 @@ class GDGPTUltra(nn.Module):
   def _init_weights(self):
     nn.init.normal_(self.wte.weight, mean=0, std=0.02)
     nn.init.normal_(self.wpe.weight, mean=0, std=0.02)
-    nn.init.normal_(self.W_q_diag, mean=0, std=0.02)
-    nn.init.normal_(self.W_k_diag, mean=0, std=0.02)
-    nn.init.normal_(self.lm_head.weight, mean=0, std=0.02)
+    if self.config.diag_wqk:
+      nn.init.normal_(self.W_qk_diag, mean=0, std=0.02)
+    else:
+      nn.init.normal_(self.W_qk, mean=0, std=0.02)
     for k in range(self.config.n_layer):
       nn.init.normal_(self.W_o_list[k].weight, mean=0, std=0.02/math.sqrt(2 * self.config.n_layer))
+    if self.config.use_ff:
+      nn.init.normal_(self.ff[1].weight, mean=0, std=0.02)
+      nn.init.normal_(self.ff[3].weight, mean=0, std=0.02)
     
   def get_num_params(self):
     num_parameters = sum(p.numel() for p in self.parameters())
@@ -89,16 +89,14 @@ class GDGPTUltra(nn.Module):
     avg_wte = avg_wte / R.sum(dim=1).unsqueeze(-1)
     
     # Subtract weighted average from token embeddings
-    V = (e - avg_wte)
+    V = e - avg_wte
     
     # Compute delta f_k
     delta_f_k = krn @ V.unsqueeze(1)
     delta_f_k = self.N_reg[:S] * delta_f_k
     delta_f_k = self.W_o_list[k](delta_f_k.transpose(1, 2).contiguous().view(B, S, -1))
     
-    delta_f_k = self.step_dropout(delta_f_k)
-    
-    return f_k + delta_f_k
+    return delta_f_k
   
   def forward(self, x, targets=None):
     
@@ -109,12 +107,6 @@ class GDGPTUltra(nn.Module):
     e = self.wte(x)
     p = self.wpe(torch.arange(0, S + 1, device=device)).repeat(B, 1, 1)
     
-    # Regularization
-    e = self.drop_e(e)
-    p = self.drop_p(p)
-    e = self.ln_e(e)
-    p = self.ln_p(p)
-    
     # Krn
     x_i = p[:, :-1, :] # x_i only uses tokens 1-N
     x_j = p[:, 1:, :] # x_j only uses tokens 2-N+1
@@ -122,31 +114,41 @@ class GDGPTUltra(nn.Module):
     x_i = x_i.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     x_j = x_j.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     
-    W_q = torch.diag_embed(self.W_q_diag)
-    W_k = torch.diag_embed(self.W_k_diag)
-    
-    K = x_i @ W_k
-    Q = x_j @ W_q
+    if self.config.diag_wqk:
+      W_qk = torch.diag_embed(self.W_qk_diag)
+    else:
+      W_qk = self.W_qk
+      
+    K = x_i @ W_qk
+    Q = x_j @ W_qk
     
     causal_mask = torch.tril(torch.ones(S, S, device=e.device), diagonal=0).view(1, S, S).bool().logical_not()
     
-    krn = Q @ K.transpose(-1, -2) / math.sqrt(self.config.d_embed) # Divide by sqrt(d) for numerical stability, common in GPT
-    krn = krn.masked_fill(causal_mask, float('-inf'))
-    krn = F.softmax(krn, dim=-1)
-    
-    krn = self.krn_dropout(krn)
+    if self.config.attn_fn == 'softmax':
+      krn = Q @ K.transpose(-1, -2)
+      krn = krn / math.sqrt(self.config.d_embed) # Divide by sqrt(d) for numerical stability, common in GPT
+      krn = krn.masked_fill(causal_mask, float('-inf'))
+      krn = F.softmax(krn, dim=-1)
+    elif self.config.attn_fn == 'linear':
+      krn = Q @ K.transpose(-1, -2)
+      krn = krn / math.sqrt(self.config.d_embed)
+      krn = krn.masked_fill(causal_mask, 0)
+    elif self.config.attn_fn == 'rbf':
+      krn = -torch.cdist(Q, K, p=2).pow(2)
+      krn = krn / (2 * self.gamma + 1e-6) # Add small epsilon for numerical stability
+      krn = torch.exp(krn)
+      krn = krn.masked_fill(causal_mask, 0)
     
     # GD steps
     f_k = torch.zeros_like(e, device=device)
     for k in range(self.config.n_layer):
-      f_k = self.gd_step(e, krn, f_k, k)
+      f_k = f_k + self.gd_step(e, krn, f_k, k)
       
     # FF
     if self.config.use_ff:
-      f_k = self.ff(f_k)
+      f_k = f_k + self.ff(f_k)
     
     # LM Head
-    f_k = self.ln_f(f_k)
     logits = self.lm_head(f_k)
     
     if targets is None:
