@@ -25,6 +25,9 @@ def load_most_recent_checkpoint(model):
   
   model_name = model.name
   
+  if not os.path.exists(MODELS_DIR):
+    return model, 0
+  
   model_files = [f for f in os.listdir(MODELS_DIR) if f.startswith(f"{model_name}")]
   if not model_files:
     print(f"No existing checkpoint found for {model_name}")
