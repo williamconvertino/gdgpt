@@ -1,6 +1,6 @@
 import torch
 
-def evaluate_model_generation(model, tokenizer, test_dataset, num_generations=5):
+def evaluate_model_generation(model, tokenizer, test_dataset, num_generations=10):
   for i, batch in enumerate(test_dataset):
     
     if i >= num_generations:
