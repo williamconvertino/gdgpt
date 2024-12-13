@@ -75,7 +75,7 @@ def get_model_from_args():
   
   if len(sys.argv) < 3 or sys.argv[2] == 'tiny':
     vocab_size = TINYSTORIES_TOKENIZER_VOCAB_SIZE
-  elif sys.argv[2] == 'children':
+  else:
     vocab_size = CHILDREN_STORIES_TOKENIZER_VOCAB_SIZE
   
   config = model_config_class(vocab_size=vocab_size)
