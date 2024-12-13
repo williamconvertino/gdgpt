@@ -8,15 +8,15 @@ from datasets import load_dataset
 
 from src.datasets.dataset import Dataset
 
-HUGGINGFACE_PATH = 'roneneldan/TinyStories'
+HUGGINGFACE_PATH = 'ajibawa-2023/Children-Stories-Collection'
 
-DATASET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/datasets/TinyStories')
+DATASET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/datasets/ChildrenStories')
 
 class TinyStoriesDataset(Dataset):
     
   def __init__(self, tokenizer, split, context_size, stride=0.5, batch_size=64):
     
-    self.name = f'TinyStories_{split}_({tokenizer.name})'
+    self.name = f'ChildrenStories_{split}_({tokenizer.name})'
     
     file_path = f'{DATASET_DIR}/{tokenizer.name}/{split}.bin'    
     
@@ -27,7 +27,10 @@ class TinyStoriesDataset(Dataset):
       
       train_dataset = train_test_splits['train']
       test_dataset = train_test_splits['test']
-      val_dataset = dataset['validation']
+      
+      train_val_split = train_dataset.train_test_split(test_size=20000, shuffle=True)
+      train_dataset = train_val_split['train']
+      val_dataset = train_val_split['test']
       
       Dataset.generate_data_file(train_dataset, f'{DATASET_DIR}/{tokenizer.name}/train.bin', tokenizer)
       Dataset.generate_data_file(test_dataset, f'{DATASET_DIR}/{tokenizer.name}/test.bin', tokenizer)

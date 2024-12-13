@@ -8,11 +8,11 @@ from datasets import load_dataset, IterableDataset
 
 class Dataset(IterableDataset):
     
-  def __init__(self, file_path, context_size, batch_size=64, shuffle=False, shuffle_buffer_size=1024):
+  def __init__(self, file_path, context_size, stride=0.5, batch_size=64, shuffle=True, shuffle_buffer_size=1024):
     
     self.file_path = file_path
     self.context_size = context_size
-    self.stride = context_size // 2
+    self.stride = int(context_size * stride)
     self.batch_size = batch_size
     self.shuffle = shuffle
     self.shuffle_buffer_size = shuffle_buffer_size
