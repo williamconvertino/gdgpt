@@ -62,4 +62,4 @@ def visualize_loss_from_files(*args, num_epochs=None, title="Losses", xlabel="St
     else:
       new_args.append((data, label))
     
-  visualize_loss(*new_args, num_epochs=num_epochs, title=title, xlabel=xlabel, ylabel=ylabel)
+  visualize_loss(*new_args, num_epochs=num_epochs, num_epoch_steps=56066, title=title, xlabel=xlabel, ylabel=ylabel)
