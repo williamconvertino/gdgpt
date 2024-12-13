@@ -4,6 +4,9 @@ import re
 import os
 import torch
 
+from src.datasets import TinyStoriesDataset, ChildrenStoriesDataset
+from src.tokenizers import TinyStoriesTokenizer, ChildrenStoriesTokenizer
+
 TINYSTORIES_TOKENIZER_VOCAB_SIZE = 10002
 CHILDREN_STORIES_TOKENIZER_VOCAB_SIZE = 15000
 
@@ -44,6 +47,21 @@ def load_most_recent_checkpoint(model):
   print(f"Loaded model with epoch={latest_epoch}")
   return model, latest_epoch
 
+def get_tokenizer_and_dataset_from_args(context_size):
+  
+  if len(sys.argv) < 3 or sys.argv[2] == 'tiny':
+    tokenizer = TinyStoriesTokenizer()
+    train_dataset = TinyStoriesDataset(tokenizer, 'train', context_size=context_size)
+    val_dataset = TinyStoriesDataset(tokenizer, 'val', context_size=context_size)
+    test_dataset = TinyStoriesDataset(tokenizer, 'test', context_size=context_size)
+  else:
+    tokenizer = ChildrenStoriesTokenizer()
+    train_dataset = ChildrenStoriesDataset(tokenizer, 'train', context_size=context_size)
+    val_dataset = ChildrenStoriesDataset(tokenizer, 'val', context_size=context_size)
+    test_dataset = ChildrenStoriesDataset(tokenizer, 'test', context_size=context_size)
+    
+  return tokenizer, train_dataset, val_dataset, test_dataset
+
 def get_model_from_args():
   # Extract model
   model_name = sys.argv[1]
@@ -55,7 +73,12 @@ def get_model_from_args():
   
   model_class, model_config_class = get_model_class(model_name)
   
-  config = model_config_class(vocab_size=TINYSTORIES_TOKENIZER_VOCAB_SIZE)
+  if len(sys.argv) < 3 or sys.argv[2] == 'tiny':
+    vocab_size = TINYSTORIES_TOKENIZER_VOCAB_SIZE
+  elif sys.argv[2] == 'children':
+    vocab_size = CHILDREN_STORIES_TOKENIZER_VOCAB_SIZE
+  
+  config = model_config_class(vocab_size=vocab_size)
   
   resume_from_checkpoint = True
   
