@@ -4,7 +4,7 @@ import re
 import os
 import torch
 
-TINYSTORIES_TOKENIZER_VOCAB_SIZE = 10000
+TINYSTORIES_TOKENIZER_VOCAB_SIZE = 10002
 CHILDREN_STORIES_TOKENIZER_VOCAB_SIZE = 15000
 
 MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../checkpoints')
