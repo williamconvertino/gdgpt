@@ -1,8 +1,13 @@
 import importlib
 import sys
 import re
+import os
+import torch
 
-TINYSTORIES_TOKENIZER_VOCAB_SIZE = 10002
+TINYSTORIES_TOKENIZER_VOCAB_SIZE = 10000
+CHILDREN_STORIES_TOKENIZER_VOCAB_SIZE = 15000
+
+MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../checkpoints')
 
 def get_model_class(model_name):
   def _get_attr_case_insensitive(module, name):
@@ -17,7 +22,24 @@ def get_model_class(model_name):
   return model_class, model_config
 
 def load_most_recent_checkpoint(model):
-  return model, 0 # TODO: Implement this function
+  
+  model_name = model.name
+  
+  model_files = [f for f in os.listdir(MODELS_DIR) if f.startswith(f"{model_name}")]
+  if not model_files:
+    print(f"No existing checkpoint found for {model_name}")
+    return model, 0
+  
+  model_files.sort(lambda x: int(x.split('_')[1]))
+  latest_model_file = model_files[-1]
+  latest_epoch = int(latest_model_file.split('_')[1])
+  
+  model_path = os.path.join(MODELS_DIR, latest_model_file)
+  
+  model.load_state_dict(torch.load(model_path, weights_only=True))
+
+  print(f"Loaded model with epoch={latest_epoch}")
+  return model, latest_epoch
 
 def get_model_from_args():
   # Extract model
