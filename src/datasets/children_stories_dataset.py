@@ -23,12 +23,13 @@ class TinyStoriesDataset(Dataset):
     if not os.path.exists(file_path):
       
       dataset = load_dataset(HUGGINGFACE_PATH, cache_dir=f'{DATASET_DIR}/raw')
-      train_test_splits = dataset['train'].train_test_split(test_size=20000, shuffle=True)
       
+      train_test_splits = dataset['train'].train_test_split(test_size=10000, shuffle=True)
+
       train_dataset = train_test_splits['train']
       test_dataset = train_test_splits['test']
       
-      train_val_split = train_dataset.train_test_split(test_size=20000, shuffle=True)
+      train_val_split = train_dataset.train_test_split(test_size=10000, shuffle=True)
       train_dataset = train_val_split['train']
       val_dataset = train_val_split['test']
       

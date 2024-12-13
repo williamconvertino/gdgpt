@@ -4,7 +4,7 @@ import math
 import torch
 import numpy as np
 from tqdm import tqdm
-from datasets import load_dataset
+from datasets import load_dataset, concatenate_datasets
 
 from src.datasets.dataset import Dataset
 
@@ -23,11 +23,16 @@ class TinyStoriesDataset(Dataset):
     if not os.path.exists(file_path):
       
       dataset = load_dataset(HUGGINGFACE_PATH, cache_dir=f'{DATASET_DIR}/raw')
-      train_test_splits = dataset['train'].train_test_split(test_size=20000, shuffle=True)
+      dataset = concatenate_datasets([dataset['train'], dataset['validation']])
       
+      train_test_splits = dataset['train'].train_test_split(test_size=10000, shuffle=True)
+
       train_dataset = train_test_splits['train']
       test_dataset = train_test_splits['test']
-      val_dataset = dataset['validation']
+      
+      train_val_split = train_dataset.train_test_split(test_size=10000, shuffle=True)
+      train_dataset = train_val_split['train']
+      val_dataset = train_val_split['test']
       
       Dataset.generate_data_file(train_dataset, f'{DATASET_DIR}/{tokenizer.name}/train.bin', tokenizer)
       Dataset.generate_data_file(test_dataset, f'{DATASET_DIR}/{tokenizer.name}/test.bin', tokenizer)
