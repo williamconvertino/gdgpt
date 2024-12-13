@@ -27,9 +27,8 @@ class AttentionBlock(nn.Module):
     
     self.config = config
     
-    # Regularization and Normalization
+    # Normalization
     self.ln_x = nn.LayerNorm(config.d_embed, elementwise_affine=False)
-    self.drop_attn = nn.Dropout(0.1)
     
     # Attn
     self.W_q = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
@@ -59,11 +58,12 @@ class AttentionBlock(nn.Module):
     if self.config.use_ff:
       nn.init.normal_(self.ff[1].weight, mean=0, std=0.02)
       nn.init.normal_(self.ff[3].weight, mean=0, std=0.02)
-      
-  def forward(self, x):
-    
+  
+  def attn(self, x):
     B, S, _ = x.size()
     device = x.device
+    
+    x = self.ln_x(x)
     
     q = k = v = x.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     
@@ -76,7 +76,7 @@ class AttentionBlock(nn.Module):
     
     if self.config.attn_fn == 'softmax':
       attn = Q @ K.transpose(-1, -2)
-      attn = attn / math.sqrt(self.config.d_embed)
+      attn = attn / math.sqrt(self.config.d_embed) # Divide by sqrt(d) for numerical stability, common in GPT
       attn = attn.masked_fill(causal_mask, float('-inf'))
       attn = F.softmax(attn, dim=-1)
     elif self.config.attn_fn == 'linear':
@@ -89,12 +89,14 @@ class AttentionBlock(nn.Module):
       attn = torch.exp(attn)
       attn = attn.masked_fill(causal_mask, 0)
     
-    attn = self.drop_attn(attn)
-    
     attn = attn @ V
     attn = self.W_o(attn.transpose(1, 2).contiguous().view(B, S, -1))
     
-    x = x + attn
+    return attn
+    
+  def forward(self, x):
+    
+    x = x + self.attn(x)
     
     if self.config.use_ff:
       x = x + self.ff(x)
@@ -113,15 +115,15 @@ class GPTPlus(nn.Module):
     self.wte = nn.Embedding(config.vocab_size, config.d_embed)
     self.wpe = nn.Embedding(config.context_size + 1, config.d_embed)
   
-    # Normalization
-    self.ln_out = nn.LayerNorm(config.d_embed, elementwise_affine=False)
-
     # Attention
     self.attn = nn.ModuleList([AttentionBlock(config) for _ in range(config.n_layer)])
-    
+  
     # Weight initialization
     self._init_weights()
     print(f'Initialized model {self.name} with {self.get_num_params()/1e6:.2f}M parameters')
+    
+    # Output
+    self.ln_out = nn.LayerNorm(config.d_embed, elementwise_affine=False)
           
   def _init_weights(self):
     nn.init.normal_(self.wte.weight, mean=0, std=0.02)
@@ -141,15 +143,14 @@ class GPTPlus(nn.Module):
     e = self.wte(x)
     p = self.wpe(torch.arange(0, S, device=device)).repeat(B, 1, 1)
     
-    x = e + p
+    x = p + e
     
     # Attn
     for attn_block in self.attn:
       x = attn_block(x)
 
-    x = self.ln_out(x)
-
     # LM Head
+    x = self.ln_out(x)
     logits = x @ self.wte.weight.transpose(0, 1)
     
     if targets is None:

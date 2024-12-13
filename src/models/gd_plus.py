@@ -38,9 +38,6 @@ class GDPlus(nn.Module):
     self.ln_e = nn.LayerNorm(config.d_embed, elementwise_affine=False)
     self.ln_p = nn.LayerNorm(config.d_embed, elementwise_affine=False)
     
-    self.drop_krn = nn.Dropout(0.1)
-    self.ln_out = nn.LayerNorm(config.d_embed, elementwise_affine=False)
-    
     # Krn
     if config.wqk == 'diag':
       self.W_qk_diag = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
@@ -64,6 +61,9 @@ class GDPlus(nn.Module):
         nn.Linear(4 * config.d_embed, config.d_embed, bias=False),
         nn.Dropout(0.1)
       )
+      
+    # Output
+    self.ln_out = nn.LayerNorm(config.d_embed, elementwise_affine=False)
   
     # Weight initialization
     self._init_weights()
@@ -137,7 +137,7 @@ class GDPlus(nn.Module):
     
     if self.config.attn_fn == 'softmax':
       krn = Q @ K.transpose(-1, -2)
-      krn = krn / math.sqrt(self.config.d_embed) # Divide by sqrt(d) for numerical stability, common in 
+      krn = krn / math.sqrt(self.config.d_embed) # Divide by sqrt(d) for numerical stability, common in GPT
       krn = krn.masked_fill(causal_mask, float('-inf'))
       krn = F.softmax(krn, dim=-1)
     elif self.config.attn_fn == 'linear':
@@ -150,8 +150,6 @@ class GDPlus(nn.Module):
       krn = torch.exp(krn)
       krn = krn.masked_fill(causal_mask, 0)
     
-    krn = self.drop_krn(krn)
-    
     # GD steps
     f_k = torch.zeros_like(e, device=device)
     for k in range(self.config.n_layer):
@@ -161,10 +159,9 @@ class GDPlus(nn.Module):
     if self.config.use_ff:
       f_k = f_k + self.ff(f_k)
     
-    f_k = self.ln_out(f_k)
-    
     # LM Head
-    logits = f_k @ self.ln_e(self.wte.weight).transpose(0, 1) # Need to use the same normalization as the embeddings for consistency
+    f_k = self.ln_out(f_k)
+    logits = f_k @ self.ln_e(self.wte.weight).transpose(0, 1) # Need to use the same normalization as e for consistency
     
     if targets is None:
       return logits, None

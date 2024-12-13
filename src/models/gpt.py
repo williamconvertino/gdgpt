@@ -58,9 +58,8 @@ class AttentionBlock(nn.Module):
     if self.config.use_ff:
       nn.init.normal_(self.ff[1].weight, mean=0, std=0.02)
       nn.init.normal_(self.ff[3].weight, mean=0, std=0.02)
-      
-  def forward(self, x):
-    
+  
+  def attn(self, x):
     B, S, _ = x.size()
     device = x.device
     
@@ -93,7 +92,11 @@ class AttentionBlock(nn.Module):
     attn = attn @ V
     attn = self.W_o(attn.transpose(1, 2).contiguous().view(B, S, -1))
     
-    x = x + attn
+    return attn
+    
+  def forward(self, x):
+    
+    x = x + self.attn(x)
     
     if self.config.use_ff:
       x = x + self.ff(x)
