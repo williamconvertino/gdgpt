@@ -12,7 +12,7 @@ HUGGINGFACE_PATH = 'ajibawa-2023/Children-Stories-Collection'
 
 DATASET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/datasets/ChildrenStories')
 
-class TinyStoriesDataset(Dataset):
+class ChildrenStoriesDataset(Dataset):
     
   def __init__(self, tokenizer, split, context_size, stride=0.5, batch_size=64):
     
