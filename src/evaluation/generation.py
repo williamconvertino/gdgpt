@@ -16,22 +16,20 @@ def evaluate_model_generation(model, tokenizer, test_dataset, num_generations=5)
     true_end = tokenizer.decode(sequence[input_size:].tolist())
     
     generated_sequence = model.generate(model_input.unsqueeze(0))
-    generated_sequence = generated_sequence[:, input_size:]
-    generated_end = tokenizer.decode(generated_sequence[0].tolist())
+    generated_end = tokenizer.decode(generated_sequence[0, input_size:].tolist())
     
     beam_search_sequence = model.beam_search(model_input.unsqueeze(0))
-    beam_search_sequence = beam_search_sequence[:, input_size:]
-    beam_search_end = tokenizer.decode(beam_search_sequence[0].tolist())
+    beam_search_end = tokenizer.decode(beam_search_sequence[0, input_size:].tolist())
     
     print("=" * 100)
     print("<Prompt:>")
     print(true_start)
     print("=" * 100)
     print("<True ending:>")
-    print(f'{true_start} [{true_end}]')
+    print(f'{true_end}')
     print("-" * 100)    
     print("<Generated ending:>")
-    print(f'{true_start} [{generated_end}]')
+    print(f'{generated_end}')
     print("-" * 100)
     print("<Beam search ending:>")
-    print(f'{true_start} [{beam_search_end}]')
+    print(f'{beam_search_end}')
