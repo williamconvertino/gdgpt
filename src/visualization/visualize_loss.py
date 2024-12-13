@@ -55,6 +55,7 @@ def visualize_loss_from_files(*args, num_epochs=None, title="Losses", xlabel="St
       
     with open(f'{RESULTS_DIR}/{file_name}.json', 'r') as f:
       data = json.load(f)
+      data = data['val_losses']
     
     if len(item) == 3:
       new_args.append((data, label, color))
