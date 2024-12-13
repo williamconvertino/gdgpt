@@ -43,7 +43,7 @@ def visualize_loss(*args, num_epochs=None, num_epoch_steps=None, title="Losses",
   plt.savefig(f'{FIGURES_DIR}/{save_title}.png')
   plt.show()
 
-def visualize_loss_from_files(*args, num_epochs=None, title="Losses", xlabel="Step", ylabel="Loss", xlim=None, ylim=None):
+def visualize_loss_from_files(*args, num_epochs=None, title="Losses", xlabel="Step", ylabel="Loss"):
   
   new_args = []
   
@@ -61,4 +61,4 @@ def visualize_loss_from_files(*args, num_epochs=None, title="Losses", xlabel="St
     else:
       new_args.append((data, label))
     
-  visualize_loss(*new_args, num_epochs=num_epochs, title=title, xlabel=xlabel, ylabel=ylabel, xlim=xlim, ylim=ylim)
+  visualize_loss(*new_args, num_epochs=num_epochs, title=title, xlabel=xlabel, ylabel=ylabel)
