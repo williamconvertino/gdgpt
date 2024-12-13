@@ -8,7 +8,7 @@ HUGGINGFACE_PATH = 'ajibawa-2023/Children-Stories-Collection'
 TOKENIZER_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/tokenizers/cs_tokenizer_15k')
 DATASET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/datasets/ChildrenStories')
 
-class ChildrenStoriesDataset(Tokenizer):
+class ChildrenStoriesTokenizer(Tokenizer):
   
   def __init__(self):
     
