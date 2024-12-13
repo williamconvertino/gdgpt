@@ -7,7 +7,7 @@ import torch
 TINYSTORIES_TOKENIZER_VOCAB_SIZE = 10000
 CHILDREN_STORIES_TOKENIZER_VOCAB_SIZE = 15000
 
-MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../checkpoints')
+MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../checkpoints')
 
 def get_model_class(model_name):
   def _get_attr_case_insensitive(module, name):
