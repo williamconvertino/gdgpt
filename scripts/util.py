@@ -33,9 +33,9 @@ def load_most_recent_checkpoint(model):
     print(f"No existing checkpoint found for {model_name}")
     return model, 0
   
-  model_files = sorted(model_files, key=lambda x: int(x.split('_')[-1]))
+  model_files = sorted(model_files, key=lambda x: int(x.split('_')[-1][:-3]))
   latest_model_file = model_files[-1]
-  latest_epoch = int(latest_model_file.split('_')[-1])
+  latest_epoch = int(latest_model_file.split('_')[-1][:-3])
   
   model_path = os.path.join(MODELS_DIR, latest_model_file)
   
