@@ -91,7 +91,7 @@ def get_model_from_args():
   
   config = model_config_class(vocab_size=vocab_size)
   
-  for parameter in sys.argv[3:]:
+  for parameter in sys.argv[2:]:
     key, value = parameter.split('=')
     print(f"Setting {key} to {value}")
     if key in [f.name for f in fields(config)]:
