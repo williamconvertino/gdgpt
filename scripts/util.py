@@ -59,7 +59,9 @@ def get_tokenizer_and_dataset_from_args(context_size):
     train_dataset = ChildrenStoriesDataset(tokenizer, 'train', context_size=context_size)
     val_dataset = ChildrenStoriesDataset(tokenizer, 'val', context_size=context_size)
     test_dataset = ChildrenStoriesDataset(tokenizer, 'test', context_size=context_size)
-    
+  
+  print(f"Loaded dataset {train_dataset.name} ({len(train_dataset)} samples) with tokenizer {tokenizer.name}")
+  
   return tokenizer, train_dataset, val_dataset, test_dataset
 
 def get_model_from_args():
