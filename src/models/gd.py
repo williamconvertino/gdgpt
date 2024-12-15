@@ -86,7 +86,7 @@ class GD(nn.Module):
   def _init_weights(self):
     nn.init.normal_(self.wte.weight, mean=0, std=0.02)
     nn.init.normal_(self.wpe.weight, mean=0, std=0.02)
-    if self.config.attention_fn == 'rbf':
+    if self.config.attn_fn == 'rbf':
       nn.init.normal_(self.gamma, mean=0, std=0.02)
     if self.config.wqk == 'diag' or self.config.wqk == 'diag_shared':
       nn.init.normal_(self.W_q_diag, mean=0, std=0.02)
