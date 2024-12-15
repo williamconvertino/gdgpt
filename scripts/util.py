@@ -93,6 +93,7 @@ def get_model_from_args():
   
   for parameter in sys.argv[3:]:
     key, value = parameter.split('=')
+    print(f"Setting {key} to {value}")
     if key in [f.name for f in fields(config)]:
       print(f"Setting {key} to {value}")
       print(type(getattr(config, key)))
