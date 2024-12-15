@@ -12,7 +12,7 @@ class ChildrenStoriesTokenizer(Tokenizer):
   
   def __init__(self):
     
-    self.name = 'ts_tokenizer_15k'
+    self.name = 'cs_tokenizer_15k'
     
     if not os.path.exists(TOKENIZER_DIR):
       dataset = load_dataset(HUGGINGFACE_PATH, cache_dir=f'{DATASET_DIR}/raw')

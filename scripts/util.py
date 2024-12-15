@@ -49,7 +49,7 @@ def load_most_recent_checkpoint(model):
 
 def get_tokenizer_and_dataset_from_args(context_size):
   
-  if len(sys.argv) < 3 or sys.argv[2] == 'tiny':
+  if len(sys.argv) < 4 or sys.argv[3] == 'tiny':
     tokenizer = TinyStoriesTokenizer()
     train_dataset = TinyStoriesDataset(tokenizer, 'train', context_size=context_size)
     val_dataset = TinyStoriesDataset(tokenizer, 'val', context_size=context_size)
