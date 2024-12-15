@@ -28,7 +28,7 @@ class CombinedDataset(Dataset):
       
       ts_dataset = load_dataset(TS_HUGGINGFACE_PATH, cache_dir=f'{TS_DATASET_DIR}/raw')
       ts_dataset = concatenate_datasets([ts_dataset['train'], ts_dataset['validation']])
-      cs_dataset = load_dataset(CS_HUGGINGFACE_PATH, cache_dir=f'{CS_DATASET_DIR}/raw')['train']
+      cs_dataset = load_dataset(CS_HUGGINGFACE_PATH, cache_dir=f'{CS_DATASET_DIR}/raw')
       
       dataset = concatenate_datasets([ts_dataset, cs_dataset]).shuffle()
       
