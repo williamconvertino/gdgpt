@@ -32,7 +32,7 @@ class CombinedDataset(Dataset):
       
       dataset = concatenate_datasets([ts_dataset, cs_dataset]).shuffle()
       
-      train_test_splits = dataset['train'].train_test_split(test_size=10000, shuffle=True)
+      train_test_splits = dataset.train_test_split(test_size=10000, shuffle=True)
 
       train_dataset = train_test_splits['train']
       test_dataset = train_test_splits['test']
