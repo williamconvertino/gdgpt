@@ -12,14 +12,17 @@ class GDConfig:
   n_head: int = 8
   n_layer: int = 1
   use_ff: bool = False
-  wqk: str = 'diag'
+  use_ln_out: bool = False
   attn_fn: str = 'softmax'
+  wqk: str = 'diag_shared'
+  wv: str = 'none'
   
   def get_extension(self):
-    return f'{self.d_embed}D_{self.n_layer}L_{self.n_head}H_FF={self.use_ff}_wqk={self.wqk}_attn={self.attn_fn}'
+    return f'{self.d_embed}D_{self.n_layer}L_{self.n_head}H_FF={self.use_ff}_LN_OUT={self.use_ln_out}_ATTN={self.attn_fn}_WQK={self.wqk}_WV={self.wv}'
   
   def __post_init__(self):
-    assert self.wqk in ['diag', 'full'], 'Invalid W_qk type, must be "diag" or "full"'
+    assert self.wqk in ['diag', 'full', 'diag_shared', 'full_shared'], 'Invalid W_qk type, must be "diag," "full," "diag_shared" or "full_shared"'
+    assert self.wv in ['none', 'diag', 'full'], 'Invalid W_v type, must be "none," "diag" or "full"'
     assert self.attn_fn in ['softmax', 'linear', 'rbf'], 'Invalid attention function, must be "softmax", "linear" or "rbf"'
 
 class GD(nn.Module):
@@ -38,16 +41,30 @@ class GD(nn.Module):
     self.ln_e = nn.LayerNorm(config.d_embed, elementwise_affine=False)
     self.ln_p = nn.LayerNorm(config.d_embed, elementwise_affine=False)
     
+    if config.use_ln_out:
+      self.ln_out = nn.LayerNorm(config.d_embed, elementwise_affine=False)
+    
     # Krn
     if config.wqk == 'diag':
-      self.W_qk_diag = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
-    else:
-      self.W_qk = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
-    
+      self.W_q_diag = nn.Parameter(torch.zeros(config.d_embed))
+      self.W_k_diag = nn.Parameter(torch.zeros(config.d_embed))
+    elif config.wqk == 'diag_shared':
+      self.W_q_diag = self.W_k_diag = nn.Parameter(torch.zeros(config.d_embed))
+    elif config.wqk == 'full':
+      self.W_q = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
+      self.W_k = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
+    elif config.wqk == 'full_shared':
+      self.W_q = self.W_k = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
+      
     if config.attn_fn == 'rbf':
       self.gamma = nn.Parameter(torch.tensor(config.n_head, 1, 1))
     
     # GD step
+    if config.wv == 'diag':
+      self.W_v_diag = nn.Parameter(torch.zeros(config.d_embed))
+    elif config.wv == 'full':
+      self.W_v = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
+      
     self.W_o_list = nn.ModuleList([nn.Linear(config.d_embed * config.n_head, config.d_embed, bias=False) for _ in range(config.n_layer)]) # Use a different projection matrix (learning rate) for each GD step
     N_reg = 1.0 / torch.arange(1, config.context_size + 1, device=self.wte.weight.device).unsqueeze(1).float() # 1/N term
     self.register_buffer('N_reg', N_reg)
@@ -69,10 +86,12 @@ class GD(nn.Module):
   def _init_weights(self):
     nn.init.normal_(self.wte.weight, mean=0, std=0.02)
     nn.init.normal_(self.wpe.weight, mean=0, std=0.02)
-    if self.config.wqk == 'diag':
-      nn.init.normal_(self.W_qk_diag, mean=0, std=0.02)
-    else:
-      nn.init.normal_(self.W_qk, mean=0, std=0.02)
+    if self.config.wqk == 'diag' or self.config.wqk == 'diag_shared':
+      nn.init.normal_(self.W_q_diag, mean=0, std=0.02)
+      nn.init.normal_(self.W_k_diag, mean=0, std=0.02)
+    elif self.config.wqk == 'full' or self.config.wqk == 'full_shared':
+      nn.init.normal_(self.W_q, mean=0, std=0.02)
+      nn.init.normal_(self.W_k, mean=0, std=0.02)
     for k in range(self.config.n_layer):
       nn.init.normal_(self.W_o_list[k].weight, mean=0, std=0.02/math.sqrt(2 * self.config.n_layer))
     if self.config.use_ff:
@@ -94,6 +113,11 @@ class GD(nn.Module):
     
     # Subtract weighted average from token embeddings
     V = e - avg_wte
+    
+    if self.config.wv == 'diag':
+      V = V @ torch.diag_embed(self.W_v_diag)
+    elif self.config.wv == 'full':
+      V = V @ self.W_v
     
     # Compute delta f_k
     delta_f_k = krn @ V.unsqueeze(1)
@@ -122,19 +146,21 @@ class GD(nn.Module):
     x_i = x_i.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     x_j = x_j.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     
-    if self.config.wqk == 'diag':
-      W_qk = torch.diag_embed(self.W_qk_diag)
+    if self.config.wqk == 'diag' or self.config.wqk == 'diag_shared':
+      W_q = torch.diag_embed(self.W_q_diag)
+      W_k = torch.diag_embed(self.W_k_diag)
     else:
-      W_qk = self.W_qk
+      W_q = self.W_q
+      W_k = self.W_k
       
-    K = x_i @ W_qk
-    Q = x_j @ W_qk
+    K = x_i @ W_k
+    Q = x_j @ W_q
     
     causal_mask = torch.tril(torch.ones(S, S, device=device), diagonal=0).view(1, S, S).bool().logical_not()
     
     if self.config.attn_fn == 'softmax':
       krn = Q @ K.transpose(-1, -2)
-      krn = krn / math.sqrt(self.config.d_embed) # Divide by sqrt(d) for numerical stability, common in 
+      krn = krn / math.sqrt(self.config.d_embed) # Divide by sqrt(d_embed) for numerical stability, common in attention mechanisms 
       krn = krn.masked_fill(causal_mask, float('-inf'))
       krn = F.softmax(krn, dim=-1)
     elif self.config.attn_fn == 'linear':
@@ -157,6 +183,9 @@ class GD(nn.Module):
       f_k = f_k + self.ff(f_k)
     
     # LM Head
+    if self.config.use_ln_out:
+      f_k = self.ln_out(f_k)
+      
     logits = f_k @ self.ln_e(self.wte.weight).transpose(0, 1) # Need to use the same normalization as the embeddings for consistency
     
     if targets is None:
