@@ -92,7 +92,10 @@ def get_model_from_args():
   config = model_config_class(vocab_size=vocab_size)
   
   for parameter in sys.argv[2:]:
-    key, value = parameter.split('=')
+    s = parameter.split('=')
+    if len(s) != 2:
+      continue
+    key, value = s
     if key in [f.name for f in fields(config)]:
       if type(getattr(config, key)) == int:
         value = int(value)
