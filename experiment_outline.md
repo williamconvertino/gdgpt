@@ -16,7 +16,7 @@ GPU 5 - Output LN (Linear)
 GPU 6 - Output LN (Softmax)
 GPU 7 - Added FF (Linear)
 GPU 8 - Added FF (Softmax)
-GPU 9 - GDTok (Linear)
-GPU 10 - GDTok (Softmax)
-GPU 11 - GDTokPlus (Linear)
-GPU 12 - GDTokPlus (Softmax)
+GPU 9 - GDTokPlus (Linear)
+GPU 10 - GDTokPlus (Softmax)
+GPU 11 - Output LN (Linear) with CS dataset
+GPU 12 - Output LN (Linear) with combined dataset
