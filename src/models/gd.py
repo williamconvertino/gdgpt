@@ -130,6 +130,8 @@ class GD(nn.Module):
   
   def forward(self, x, targets=None):
     
+    print(self.gamma)
+    
     device = x.device
     B, S = x.size()
     
