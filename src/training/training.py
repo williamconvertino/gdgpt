@@ -107,7 +107,7 @@ def train_model(model, train_dataset, val_dataset, max_epochs=None):
         if step == 0:
           start_time = time.time() # Reset start time to avoid time remaining being skewed by initial validation time
       
-      if step <= 1000 or step % 100 == 0 or step == len(train_dataset) - 1:
+      if (step <= 1000 or step % 100 == 0 or step == len(train_dataset) - 1) and step > 0:
         time_remaining = get_time_remaining(start_time, step, len(train_dataset))
         print(f"\r\tEpoch {epoch} | Step {step}/{len(train_dataset)} | Train Loss: {train_loss:.4f} | Most Recent Val Loss: {val_loss:.4f} | Time Remaining: {time_remaining}", end='')
     
