@@ -3,12 +3,14 @@ import sys
 import re
 import os
 import torch
+from dataclasses import fields
 
-from src.datasets import TinyStoriesDataset, ChildrenStoriesDataset
-from src.tokenizers import TinyStoriesTokenizer, ChildrenStoriesTokenizer
+from src.datasets import TinyStoriesDataset, ChildrenStoriesDataset, CombinedDataset
+from src.tokenizers import TinyStoriesTokenizer, ChildrenStoriesTokenizer, CombinedTokenizer
 
 TINYSTORIES_TOKENIZER_VOCAB_SIZE = 10000
 CHILDREN_STORIES_TOKENIZER_VOCAB_SIZE = 15000
+COMBINED_TOKENIZER_VOCAB_SIZE = 15000
 
 MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../checkpoints')
 
@@ -49,16 +51,21 @@ def load_most_recent_checkpoint(model):
 
 def get_tokenizer_and_dataset_from_args(context_size):
   
-  if len(sys.argv) < 4 or sys.argv[3] == 'tiny':
-    tokenizer = TinyStoriesTokenizer()
-    train_dataset = TinyStoriesDataset(tokenizer, 'train', context_size=context_size)
-    val_dataset = TinyStoriesDataset(tokenizer, 'val', context_size=context_size)
-    test_dataset = TinyStoriesDataset(tokenizer, 'test', context_size=context_size)
-  else:
+  if 'children_stories' in sys.argv[2:]:
     tokenizer = ChildrenStoriesTokenizer()
     train_dataset = ChildrenStoriesDataset(tokenizer, 'train', context_size=context_size)
     val_dataset = ChildrenStoriesDataset(tokenizer, 'val', context_size=context_size)
     test_dataset = ChildrenStoriesDataset(tokenizer, 'test', context_size=context_size)
+  elif 'combined' in sys.argv[2:]:
+    tokenizer = CombinedTokenizer()
+    train_dataset = CombinedDataset(tokenizer, 'train', context_size=context_size)
+    val_dataset = CombinedDataset(tokenizer, 'val', context_size=context_size)
+    test_dataset = CombinedDataset(tokenizer, 'test', context_size=context_size)
+  else:
+    tokenizer = TinyStoriesTokenizer()
+    train_dataset = TinyStoriesDataset(tokenizer, 'train', context_size=context_size)
+    val_dataset = TinyStoriesDataset(tokenizer, 'val', context_size=context_size)
+    test_dataset = TinyStoriesDataset(tokenizer, 'test', context_size=context_size)
   
   print(f"Loaded dataset {train_dataset.name} ({len(train_dataset)} batches, {len(train_dataset) * train_dataset.batch_size} samples)")
   
@@ -68,10 +75,12 @@ def get_model_from_args():
   # Extract model
   model_name = sys.argv[1]
   
-  if len(sys.argv) > 2:
-    experiment_params = sys.argv[2]
+  if 'children_stories' in sys.argv[2:]:
+    vocab_size = CHILDREN_STORIES_TOKENIZER_VOCAB_SIZE
+  elif 'combined' in sys.argv[2:]:
+    vocab_size = COMBINED_TOKENIZER_VOCAB_SIZE
   else:
-    experiment_params = None
+    vocab_size = TINYSTORIES_TOKENIZER_VOCAB_SIZE
   
   model_class, model_config_class = get_model_class(model_name)
   
@@ -82,59 +91,18 @@ def get_model_from_args():
   
   config = model_config_class(vocab_size=vocab_size)
   
-  resume_from_checkpoint = True
-  
-  # Extract model and experiment parameters
-  if experiment_params:
-    head_regex = re.compile(r'(\d+)H')
-    head_search = head_regex.search(experiment_params)
-    if head_search:
-      config.n_head = int(head_search.group(1))
-    
-    layer_regex = re.compile(r'(\d+)L')
-    layer_search = layer_regex.search(experiment_params)
-    if layer_search:
-      config.n_layer = int(layer_search.group(1))
-    
-    d_embed_regex = re.compile(r'(\d+)D')
-    d_embed_search = d_embed_regex.search(experiment_params)
-    if d_embed_search:
-      config.d_embed = int(d_embed_search.group(1))
-    
-    ff_regex = re.compile(r'ff=(\w+)')
-    ff_search = ff_regex.search(experiment_params)
-    if ff_search:
-      config.use_ff = ff_search.group(1).lower() == 'true'
-  
-    ln_out_regex = re.compile(r'ln_out=(\w+)')
-    ln_out_search = ln_out_regex.search(experiment_params)
-    if ln_out_search:
-      config.use_ln_out = ln_out_search.group(1).lower() == 'true'
-  
-    attn_fn_regex = re.compile(r'attn=(\w+)')
-    attn_fn_search = attn_fn_regex.search(experiment_params)
-    if attn_fn_search:
-      config.attn_fn = attn_fn_search.group(1)
+  for parameter in sys.argv[3:]:
+    key, value = parameter.split('=')
+    if key in [f.name for f in fields(config)]:
+      if type(getattr(config, key)) == int:
+        value = int(value)
+      elif type(getattr(config, key)) == bool:
+        value = value.lower() == 'true'
+      setattr(config, key, value)
       
-    wqk_regex = re.compile(r'wqk=(\w+)')
-    wqk_search = wqk_regex.search(experiment_params)
-    if wqk_search:
-      config.wqk = wqk_search.group(1)
-  
-    wv_regex = re.compile(r'wv=(\w+)')
-    wv_search = wv_regex.search(experiment_params)
-    if wv_search:
-      config.wv = wv_search.group(1)
-  
-    resume_regex = re.compile(r'resume=(\w+)')
-    resume_search = resume_regex.search(experiment_params)
-    if resume_search and resume_search.group(1).lower() == 'false':
-      resume_from_checkpoint = False
-
   model = model_class(config)
   num_epochs_trained = 0
   
-  if resume_from_checkpoint:
-    model, num_epochs_trained = load_most_recent_checkpoint(model)
+  model, num_epochs_trained = load_most_recent_checkpoint(model)
   
   return model, num_epochs_trained

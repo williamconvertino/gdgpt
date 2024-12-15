@@ -1,3 +1,4 @@
 from src.datasets.dataset import Dataset
 from src.datasets.tinystories_dataset import TinyStoriesDataset
 from src.datasets.children_stories_dataset import ChildrenStoriesDataset
+from src.datasets.combined_dataset import CombinedDataset
