@@ -57,7 +57,7 @@ class GDTok(nn.Module):
       self.W_q = self.W_k = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
       
     if config.attn_fn == 'rbf':
-      self.gamma = nn.Parameter(torch.tensor(config.n_head, 1, 1))
+      self.gamma = nn.Parameter(torch.zeros(config.n_head, 1, 1))
     
     # GD step
     if config.wv == 'diag':
