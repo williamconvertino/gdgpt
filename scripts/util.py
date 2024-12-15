@@ -94,9 +94,13 @@ def get_model_from_args():
   for parameter in sys.argv[3:]:
     key, value = parameter.split('=')
     if key in [f.name for f in fields(config)]:
+      print(f"Setting {key} to {value}")
+      print(type(getattr(config, key)))
       if type(getattr(config, key)) == int:
         value = int(value)
       elif type(getattr(config, key)) == bool:
+        print("FOUND BOOL")
+        print(value.lower(), value.lower() == 'true')
         value = value.lower() == 'true'
       setattr(config, key, value)
       
