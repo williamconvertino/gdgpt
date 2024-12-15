@@ -8,24 +8,31 @@ from datasets import load_dataset, concatenate_datasets
 
 from src.datasets.dataset import Dataset
 
-HUGGINGFACE_PATH = 'roneneldan/TinyStories'
+CS_HUGGINGFACE_PATH = 'ajibawa-2023/Children-Stories-Collection'
+TS_HUGGINGFACE_PATH = 'roneneldan/TinyStories'
 
-DATASET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/datasets/TinyStories')
+DATASET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/datasets/CombinedDataset')
 
-class TinyStoriesDataset(Dataset):
+CS_DATASET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/datasets/ChildrenStories')
+TS_DATASET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/datasets/TinyStories')
+
+class CombinedDataset(Dataset):
     
   def __init__(self, tokenizer, split, context_size, stride=0.5, batch_size=64):
     
-    self.name = f'TinyStories_{split}_({tokenizer.name})'
+    self.name = f'CombinedDataset_{split}_({tokenizer.name})'
     
     file_path = f'{DATASET_DIR}/{tokenizer.name}/{split}.bin'    
     
     if not os.path.exists(file_path):
       
-      dataset = load_dataset(HUGGINGFACE_PATH, cache_dir=f'{DATASET_DIR}/raw')
-      dataset = concatenate_datasets([dataset['train'], dataset['validation']])
+      ts_dataset = load_dataset(TS_HUGGINGFACE_PATH, cache_dir=f'{TS_DATASET_DIR}/raw')
+      ts_dataset = concatenate_datasets([ts_dataset['train'], ts_dataset['validation']])
+      cs_dataset = load_dataset(CS_HUGGINGFACE_PATH, cache_dir=f'{CS_DATASET_DIR}/raw')['train']
       
-      train_test_splits = dataset.train_test_split(test_size=10000, shuffle=True)
+      dataset = concatenate_datasets([ts_dataset, cs_dataset]).shuffle()
+      
+      train_test_splits = dataset['train'].train_test_split(test_size=10000, shuffle=True)
 
       train_dataset = train_test_splits['train']
       test_dataset = train_test_splits['test']

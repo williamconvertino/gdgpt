@@ -22,9 +22,9 @@ class ChildrenStoriesDataset(Dataset):
     
     if not os.path.exists(file_path):
       
-      dataset = load_dataset(HUGGINGFACE_PATH, cache_dir=f'{DATASET_DIR}/raw')
+      dataset = load_dataset(HUGGINGFACE_PATH, cache_dir=f'{DATASET_DIR}/raw')['train']
       
-      train_test_splits = dataset['train'].train_test_split(test_size=10000, shuffle=True)
+      train_test_splits = dataset.train_test_split(test_size=10000, shuffle=True)
 
       train_dataset = train_test_splits['train']
       test_dataset = train_test_splits['test']
