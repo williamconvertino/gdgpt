@@ -57,7 +57,7 @@ class GD(nn.Module):
       self.W_q = self.W_k = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
       
     if config.attn_fn == 'rbf':
-      self.gamma = nn.Parameter(torch.zeros(config.n_head, 1, 1))
+      self.gamma = nn.Parameter(torch.ones(config.n_head, 1, 1))
     
     # GD step
     if config.wv == 'diag':
@@ -86,8 +86,6 @@ class GD(nn.Module):
   def _init_weights(self):
     nn.init.normal_(self.wte.weight, mean=0, std=0.02)
     nn.init.normal_(self.wpe.weight, mean=0, std=0.02)
-    if self.config.attn_fn == 'rbf':
-      nn.init.normal_(self.gamma, mean=0, std=0.02)
     if self.config.wqk == 'diag' or self.config.wqk == 'diag_shared':
       nn.init.normal_(self.W_q_diag, mean=0, std=0.02)
       nn.init.normal_(self.W_k_diag, mean=0, std=0.02)
@@ -173,9 +171,9 @@ class GD(nn.Module):
       krn = krn.masked_fill(causal_mask, 0)
     elif self.config.attn_fn == 'rbf':
       krn = -torch.cdist(Q, K, p=2).pow(2)
-      krn = krn / (2 * self.gamma + 1e-6) # Add small epsilon for numerical stability
+      krn = krn / (-2 * self.gamma + 1e-6) # Add small epsilon for numerical stability
+      krn = krn.masked_fill(causal_mask, float('-inf'))
       krn = torch.exp(krn)
-      krn = krn.masked_fill(causal_mask, 0)
     
     # GD steps
     f_k = torch.zeros_like(e, device=device)
