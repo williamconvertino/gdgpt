@@ -52,7 +52,8 @@ def train_model(model, train_dataset, val_dataset, max_epochs=None):
     print(f'Found {torch.cuda.device_count()} GPUs')
     for i in range(torch.cuda.device_count()):
       
-      total_memory, free_memory = torch.cuda.memory_stats(i)
+      gpu = torch.device(f'cuda:{i}')
+      total_memory, free_memory = torch.cuda.mem_get_info(gpu)
       
       print(f'[GPU {i}] memory used: {total_memory} memory free: {free_memory}')
       
