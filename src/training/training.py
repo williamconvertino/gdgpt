@@ -53,7 +53,7 @@ def train_model(model, train_dataset, val_dataset, max_epochs=None):
     for i in range(torch.cuda.device_count()):
       
       gpu = torch.device(f'cuda:{i}')
-      total_memory, free_memory = torch.cuda.mem_get_info(gpu)
+      free_memory, total_memory = torch.cuda.mem_get_info(gpu)
       total_memory = int(total_memory / 1024**3)
       free_memory = int(free_memory / 1024**3)
       
