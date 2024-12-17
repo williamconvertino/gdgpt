@@ -52,6 +52,7 @@ def train_model(model, train_dataset, val_dataset, max_epochs=None):
     print("CUDA not available, using CPU")
   else:
     for i in range(torch.cuda.device_count()):
+      print(f"[GPU {i}] total memory used: {torch.cuda.memory_allocated(i) / (1024 ** 3)} GB")
       if torch.cuda.memory_allocated(i) / (1024 ** 3) < 1.0: # If GPU has less than 1GB of memory allocated, use it
         device = torch.device(f'cuda:{i}')
         print(f"Using GPU {i}")
