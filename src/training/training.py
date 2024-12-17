@@ -47,10 +47,8 @@ def train_model(model, train_dataset, val_dataset, max_epochs=None):
   
   # Setup
   # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  if not torch.cuda.is_available():
-    device = torch.device('cpu')
-    print("CUDA not available, using CPU")
-  else:
+  device = None
+  if torch.cuda.is_available():
     print(f'Found {torch.cuda.device_count()} GPUs')
     for i in range(torch.cuda.device_count()):
       print(f'[GPU {i}] total memory used: {torch.cuda.memory_allocated(i) / (1024 ** 3)} GB')
@@ -58,8 +56,12 @@ def train_model(model, train_dataset, val_dataset, max_epochs=None):
         device = torch.device(f'cuda:{i}')
         print(f"Using GPU {i}")
         break
+    if device is None:
+      print("All GPUs are being used. Using CPU instead.")
+      device = torch.device('cpu')
+  else:
+    print("No GPUs found. Using CPU.")
     device = torch.device('cpu')
-    print("All GPUs are being used, using CPU")
   
   model.to(device)
   
