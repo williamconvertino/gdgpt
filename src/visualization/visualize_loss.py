@@ -33,17 +33,16 @@ def visualize_loss(*args, num_epochs=None, num_epoch_steps=None, title="Losses",
     if num_epochs is None:
       num_epochs = max([losses[-1][0] for losses, _, _ in args])
     
-    for i in range(0, num_epochs * num_epoch_steps, num_epoch_steps):
-      x = losses[i][0]
-      plt.axvline(x=x, color='gray', linestyle='--', linewidth=0.5)
+    # for x in range(0, num_epochs * num_epoch_steps, num_epoch_steps):
+    #   plt.axvline(x=x, color='gray', linestyle='--', linewidth=0.5)
     
-  plt.legend()
+  plt.legend(loc='upper right')
   save_title = title.lower().replace(" ", "_")
   os.makedirs(FIGURES_DIR, exist_ok=True)
   plt.savefig(f'{FIGURES_DIR}/{save_title}.png')
   plt.show()
 
-def visualize_loss_from_files(*args, num_epochs=None, title="Losses", xlabel="Step", ylabel="Loss"):
+def visualize_loss_from_files(*args, num_epochs=None, title="Losses"):
   
   new_args = []
   
@@ -55,6 +54,7 @@ def visualize_loss_from_files(*args, num_epochs=None, title="Losses", xlabel="St
       
     with open(f'{RESULTS_DIR}/{file_name}.json', 'r') as f:
       data = json.load(f)
+      num_epoch_steps = data['num_epoch_steps']
       data = data['val_losses']
     
     if len(item) == 3:
@@ -62,4 +62,4 @@ def visualize_loss_from_files(*args, num_epochs=None, title="Losses", xlabel="St
     else:
       new_args.append((data, label))
     
-  visualize_loss(*new_args, num_epochs=num_epochs, title=title, xlabel=xlabel, ylabel=ylabel)
+  visualize_loss(*new_args, num_epochs=num_epochs, title=title, num_epoch_steps=num_epoch_steps)

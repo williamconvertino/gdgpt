@@ -88,7 +88,7 @@ def train_model(model, train_dataset, val_dataset, max_epochs=None):
       
       train_loss = train_loss.item()
       
-      if step > 0 and (step % record_steps == 0 or step == len(train_dataset) - 1):
+      if step % record_steps == 0 or step == len(train_dataset) - 1:
         total_val_loss = 0.0
         model.eval()
         with torch.no_grad():

@@ -37,12 +37,11 @@ class GD(nn.Module):
     self.wte = nn.Embedding(config.vocab_size, config.d_embed)
     self.wpe = nn.Embedding(config.context_size + 1, config.d_embed)
     
-    # Normalization
-    self.ln_e = nn.LayerNorm(config.d_embed, elementwise_affine=False)
-    self.ln_p = nn.LayerNorm(config.d_embed, elementwise_affine=False)
+    self.ln_e = nn.LayerNorm(config.d_embed, bias=False)
+    self.ln_p = nn.LayerNorm(config.d_embed, bias=False)
     
-    if config.use_ln_out:
-      self.ln_out = nn.LayerNorm(config.d_embed, elementwise_affine=False)
+    self.drop_e = nn.Dropout(0.1)
+    self.drop_p = nn.Dropout(0.1)
     
     # Krn
     if config.wqk == 'diag':
@@ -59,6 +58,8 @@ class GD(nn.Module):
     if config.attn_fn == 'rbf':
       self.gamma = nn.Parameter(torch.ones(config.n_head, 1, 1))
     
+    self.drop_krn = nn.Dropout(0.1)
+    
     # GD step
     if config.wv == 'diag':
       self.W_v_diag = nn.Parameter(torch.zeros(config.d_embed))
@@ -69,15 +70,21 @@ class GD(nn.Module):
     N_reg = 1.0 / torch.arange(1, config.context_size + 1, device=self.wte.weight.device).unsqueeze(1).float() # 1/N term
     self.register_buffer('N_reg', N_reg)
     
+    self.drop_gd = nn.Dropout(0.1)
+    
     # FF
     if config.use_ff:
       self.ff = nn.Sequential(
-        nn.LayerNorm(config.d_embed, elementwise_affine=False),
+        nn.LayerNorm(config.d_embed, bias=False),
         nn.Linear(config.d_embed, 4 * config.d_embed, bias=False),
         nn.GELU(),
         nn.Linear(4 * config.d_embed, config.d_embed, bias=False),
         nn.Dropout(0.1)
       )
+      
+    # Output
+    if config.use_ln_out:
+      self.ln_out = nn.LayerNorm(config.d_embed, bias=False)
   
     # Weight initialization
     self._init_weights()
@@ -124,7 +131,9 @@ class GD(nn.Module):
     delta_f_k = self.N_reg[:S] * delta_f_k
     delta_f_k = self.W_o_list[k](delta_f_k.transpose(1, 2).contiguous().view(B, S, -1))
     
-    return f_k + delta_f_k
+    delta_f_k = self.drop_gd(delta_f_k)
+    
+    return delta_f_k
   
   def forward(self, x, targets=None):
     
@@ -135,13 +144,15 @@ class GD(nn.Module):
     e = self.wte(x)
     p = self.wpe(torch.arange(0, S + 1, device=device)).repeat(B, 1, 1)
     
-    # Normalization
     e = self.ln_e(e)
     p = self.ln_p(p)
     
+    e = self.drop_e(e)
+    p = self.drop_p(p)
+    
     # Krn
-    x_i = p[:, :-1, :] # x_i only uses tokens 1-N
-    x_j = p[:, 1:, :] # x_j only uses tokens 2-N+1
+    x_i = p[:, :-1, :] # x_i only uses positional embeddings from tokens 1, ..., N
+    x_j = p[:, 1:, :] # x_j only uses positional embeddings from tokens 2, ..., N+1
     
     x_i = x_i.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     x_j = x_j.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
@@ -173,11 +184,16 @@ class GD(nn.Module):
       krn = krn.masked_fill(causal_mask, float('-inf'))
       krn = torch.exp(krn)
     
+    krn = self.drop_krn(krn)
+    
     # GD steps
     f_k = torch.zeros_like(e, device=device)
     for k in range(self.config.n_layer):
-      f_k = self.gd_step(e, krn, f_k, k)
+      f_k = f_k + self.gd_step(e, krn, f_k, k)
       
+    if targets is None:
+      f_k = f_k[:, [-1], :] # Inference-time optimization, only consider the last token
+    
     # FF
     if self.config.use_ff:
       f_k = f_k + self.ff(f_k)

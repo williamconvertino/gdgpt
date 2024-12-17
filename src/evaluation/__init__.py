@@ -1,1 +1,1 @@
-from src.evaluation.generation import evaluate_model_generation
+from src.evaluation.generation import evaluate_model_generation, quick_eval

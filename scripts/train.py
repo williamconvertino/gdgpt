@@ -10,7 +10,7 @@ if __name__ == "__main__":
   
   torch.manual_seed(0)
   
-  model, _ = get_model_from_args()
+  model = get_model_from_args()
   
   # Load tokenizer and datasets
   tokenizer, train_dataset, val_dataset, _ = get_tokenizer_and_dataset_from_args(model.config.context_size)
