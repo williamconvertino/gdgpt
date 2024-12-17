@@ -46,8 +46,19 @@ def model_forward(model, batch, device):
 def train_model(model, train_dataset, val_dataset, max_epochs=None):
   
   # Setup
-  device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  # device = torch.device('cpu')
+  # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+  if not torch.cuda.is_available():
+    device = torch.device('cpu')
+    print("CUDA not available, using CPU")
+  else:
+    for i in range(torch.cuda.device_count()):
+      if torch.cuda.memory_allocated(i) == 0 and torch.cuda.memory_reserved(i) == 0:
+        device = torch.device(f'cuda:{i}')
+        print(f"Using GPU {i}")
+        break
+    device = torch.device('cpu')
+    print("All GPUs are being used, using CPU")
+  
   model.to(device)
   
   optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
