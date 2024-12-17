@@ -54,8 +54,10 @@ def train_model(model, train_dataset, val_dataset, max_epochs=None):
       
       gpu = torch.device(f'cuda:{i}')
       total_memory, free_memory = torch.cuda.mem_get_info(gpu)
+      total_memory = int(total_memory / 1024**3)
+      free_memory = int(free_memory / 1024**3)
       
-      print(f'[GPU {i}] memory used: {total_memory} memory free: {free_memory}')
+      print(f'[GPU {i}] memory used: {total_memory}GB memory free: {free_memory}GB')
       
       if free_memory > 2:
         device = torch.device(f'cuda:{i}')
