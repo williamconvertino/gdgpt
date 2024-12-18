@@ -57,9 +57,11 @@ def train_model(model, train_dataset, val_dataset, max_epochs=None):
       total_memory = int(total_memory / 1024**3)
       free_memory = int(free_memory / 1024**3)
       
+      percent_used = (total_memory - free_memory) / total_memory
+      
       print(f'[GPU {i}] Total memory: {total_memory}GB, Free memory: {free_memory}GB')
       
-      if free_memory > 2:
+      if percent_used < 0.1:
         device = torch.device(f'cuda:{i}')
         print(f"Using GPU {i}")
         break
