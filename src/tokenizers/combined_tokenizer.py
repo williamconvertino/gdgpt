@@ -18,6 +18,7 @@ class CombinedTokenizer(Tokenizer):
     self.name = 'combined_tokenizer_15k'
     
     if not os.path.exists(TOKENIZER_DIR):
+      print('Creating combined tokenizer files...')
       ts_dataset = load_dataset(TS_HUGGINGFACE_PATH, cache_dir=f'{TS_DATASET_DIR}/raw')
       cs_dataset = load_dataset(CS_HUGGINGFACE_PATH, cache_dir=f'{CS_DATASET_DIR}/raw')
       dataset = concatenate_datasets([ts_dataset['train'], cs_dataset['train']])

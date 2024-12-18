@@ -22,6 +22,8 @@ class TinyStoriesDataset(Dataset):
     
     if not os.path.exists(file_path):
       
+      print(f'Creating {self.name} dataset file...')
+      
       dataset = load_dataset(HUGGINGFACE_PATH, cache_dir=f'{DATASET_DIR}/raw')
       dataset = concatenate_datasets([dataset['train'], dataset['validation']])
       
