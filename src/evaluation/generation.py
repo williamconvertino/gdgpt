@@ -5,13 +5,47 @@ QUICK_EVAL_SEQUENCES = [
   "There once was a princess who lived in a castle. She was very lonely and ",
 ]
 
+def setup_device(model):
+  device = None
+  if torch.cuda.is_available():
+    print(f'Found {torch.cuda.device_count()} GPUs')
+    for i in range(torch.cuda.device_count()):
+      
+      gpu = torch.device(f'cuda:{i}')
+      free_memory, total_memory = torch.cuda.mem_get_info(gpu)
+      total_memory = int(total_memory / 1024**3)
+      free_memory = int(free_memory / 1024**3)
+      
+      percent_used = (total_memory - free_memory) / total_memory
+      
+      print(f'[GPU {i}] Total memory: {total_memory}GB, Free memory: {free_memory}GB')
+      
+      if percent_used < 0.1:
+        device = torch.device(f'cuda:{i}')
+        print(f"Using GPU {i}")
+        break
+    if device is None:
+      print("All GPUs are being used. Using CPU instead.")
+      device = torch.device('cpu')
+  else:
+    print("No GPUs found. Using CPU.")
+    device = torch.device('cpu')
+  
+  model.to(device)
+  return model, device
+
 def quick_eval(model, tokenizer):
+  
+  model, device = setup_device(model)
+  
   for sequence in QUICK_EVAL_SEQUENCES:
     model_input = tokenizer.encode(sequence)
     model_input = torch.tensor(model_input).unsqueeze(0)
     
     with torch.no_grad():
       model.eval()
+      
+      model_input = model_input.to(device)
       
       generated_sequence = model.generate(model_input)
       generated_text = tokenizer.decode(generated_sequence[0].tolist())
@@ -30,6 +64,9 @@ def quick_eval(model, tokenizer):
     print(beam_search_text)
 
 def evaluate_model_generation(model, tokenizer, test_dataset, num_generations=10):
+  
+  model, device = setup_device(model)
+  
   for i, batch in enumerate(test_dataset):
     
     if i >= num_generations:
@@ -47,10 +84,12 @@ def evaluate_model_generation(model, tokenizer, test_dataset, num_generations=10
       true_start = tokenizer.decode(model_input.tolist())
       true_end = tokenizer.decode(sequence[input_size:].tolist())
       
-      generated_sequence = model.generate(model_input.unsqueeze(0))
+      model_input = model_input.unsqueeze(0).to(device)
+      
+      generated_sequence = model.generate(model_input)
       generated_end = tokenizer.decode(generated_sequence[0, input_size:].tolist())
       
-      beam_search_sequence = model.beam_search(model_input.unsqueeze(0))
+      beam_search_sequence = model.beam_search(model_input)
       beam_search_end = tokenizer.decode(beam_search_sequence[0, input_size:].tolist())
       
     print("=" * 100)
