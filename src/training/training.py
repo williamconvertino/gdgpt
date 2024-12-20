@@ -123,7 +123,8 @@ def train_model(model, train_dataset, val_dataset, loaded_results=None, max_epoc
     os.makedirs(RESULTS_DIR, exist_ok=True)
     os.makedirs(CHECKPOINTS_DIR, exist_ok=True)
     
-    torch.save(model.state_dict(), f'{CHECKPOINTS_DIR}/{model.name}_epoch_{results['num_epochs']}.pt')
+    epochs = results['num_epochs']
+    torch.save(model.state_dict(), f'{CHECKPOINTS_DIR}/{model.name}_epoch_{epochs}.pt')
     
     with open(f'{RESULTS_DIR}/{model.name}.json', 'w') as f:
       json.dump(results, f)
