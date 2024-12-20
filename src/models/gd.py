@@ -11,6 +11,7 @@ class GDConfig:
   d_embed: int = 512
   n_head: int = 8
   n_layer: int = 1
+  covariate_ff: bool = False
   use_ff: bool = False
   use_ln_out: bool = False
   attn_fn: str = 'softmax'
@@ -82,6 +83,14 @@ class GD(nn.Module):
         nn.Dropout(0.1)
       )
       
+    if config.covariate_ff:
+      self.ff_cov = nn.Sequential(
+        nn.Linear(config.context_size + 1, 4 * config.d_embed, bias=False),
+        nn.GELU(),
+        nn.Linear(4 * config.d_embed, config.context_size + 1, bias=False),
+        nn.Dropout(0.1)
+      )
+      
     # Output
     if config.use_ln_out:
       self.ln_out = nn.LayerNorm(config.d_embed, bias=False)
@@ -104,6 +113,9 @@ class GD(nn.Module):
     if self.config.use_ff:
       nn.init.normal_(self.ff[1].weight, mean=0, std=0.02)
       nn.init.normal_(self.ff[3].weight, mean=0, std=0.02)
+    if self.config.covariate_ff:
+      nn.init.normal_(self.ff_cov[0].weight, mean=0, std=0.02)
+      nn.init.normal_(self.ff_cov[2].weight, mean=0, std=0.02)
     
   def get_num_params(self):
     num_parameters = sum(p.numel() for p in self.parameters())
@@ -149,6 +161,9 @@ class GD(nn.Module):
     
     e = self.drop_e(e)
     p = self.drop_p(p)
+    
+    if self.config.covariate_ff:
+      p = p + self.ff_cov(p)
     
     # Krn
     x_i = p[:, :-1, :] # x_i only uses positional embeddings from tokens 1, ..., N
