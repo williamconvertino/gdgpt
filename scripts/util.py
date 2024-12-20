@@ -2,6 +2,7 @@ import importlib
 import sys
 import re
 import os
+import json
 import torch
 from dataclasses import fields
 
@@ -13,6 +14,7 @@ CHILDREN_STORIES_TOKENIZER_VOCAB_SIZE = 15000
 COMBINED_TOKENIZER_VOCAB_SIZE = 15000
 
 MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../checkpoints')
+RESULTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../results')
 
 def get_model_class(model_name):
   def _get_attr_case_insensitive(module, name):
@@ -31,13 +33,13 @@ def load_most_recent_checkpoint(model, max_epochs=None):
   model_name = model.name
   
   if not os.path.exists(MODELS_DIR):
-    return model, 0
+    return None, None
   
   model_files = [f for f in os.listdir(MODELS_DIR) if f.startswith(f"{model_name}")]
   
   if not model_files:
     print(f"No existing checkpoint found for {model_name}")
-    return model, 0
+    return None, None
   
   if max_epochs is not None:
     model_files = [f for f in model_files if int(f.split('_')[-1][:-3]) <= max_epochs]
@@ -47,11 +49,19 @@ def load_most_recent_checkpoint(model, max_epochs=None):
   latest_epoch = int(latest_model_file.split('_')[-1][:-3])
   
   model_path = os.path.join(MODELS_DIR, latest_model_file)
+  results_path = os.path.join(RESULTS_DIR, model_name + '.json')
   
   model.load_state_dict(torch.load(model_path, weights_only=True, map_location='cpu' if not torch.cuda.is_available() else None))
 
+  if os.path.exists(results_path):
+    with open(results_path, 'r') as f:
+      results = json.load(f)
+    print(f"Loaded results for model {model_name}")
+  else:
+    results = None
+
   print(f"Loaded model with epoch={latest_epoch}")
-  return model, latest_epoch
+  return model, results
 
 def get_tokenizer_and_dataset_from_args(context_size):
   

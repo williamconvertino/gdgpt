@@ -13,17 +13,8 @@ WEIGHT_DECAY = 1e-2
 CHECKPOINTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../checkpoints')
 RESULTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../results')
 
-def model_forward(model, batch, device):
-  sequence = batch.to(device)
-  input_ids = sequence[:, :-1]
-  target_ids = sequence[:, 1:]
-  _, loss = model(input_ids, target_ids)
-  return loss
-
-def train_model(model, train_dataset, val_dataset, max_epochs=None):
-  
-  # Setup
-  # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# Gets first available GPU
+def get_device():
   device = None
   if torch.cuda.is_available():
     print(f'Found {torch.cuda.device_count()} GPUs')
@@ -48,28 +39,43 @@ def train_model(model, train_dataset, val_dataset, max_epochs=None):
   else:
     print("No GPUs found. Using CPU.")
     device = torch.device('cpu')
+
+def model_forward(model, batch, device):
+  sequence = batch.to(device)
+  input_ids = sequence[:, :-1]
+  target_ids = sequence[:, 1:]
+  _, loss = model(input_ids, target_ids)
+  return loss
+
+def train_model(model, train_dataset, val_dataset, loaded_results=None, max_epochs=None):
+  
+  # Setup
+  device = get_device()
   
   model.to(device)
   
   optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-
-  results = {
-    'num_epoch_steps': len(train_dataset),
-    'num_epochs': 0,
-    'train_losses': [],
-    'val_losses': []
-  }
+  
+  if loaded_results is not None:
+    results = loaded_results
+  else:
+    results = {
+      'num_epoch_steps': len(train_dataset),
+      'num_epochs': 0,
+      'train_losses': [],
+      'val_losses': []
+    }
 
   record_steps = len(train_dataset) // 100 # Only validates/saves model losses a limited number of times (for performance/memory reasons)
-  
-  epoch = 0
   
   # Training Loop
   print(f"Training {model.name} [Device: {device}]")
   
   while True:
     
-    if max_epochs is not None and epoch >= max_epochs:
+    results['num_epochs'] += 1
+    
+    if max_epochs is not None and results['num_epochs'] > max_epochs:
       break
     
     train_loss = 0.0
@@ -100,7 +106,7 @@ def train_model(model, train_dataset, val_dataset, max_epochs=None):
         val_loss = total_val_loss / len(val_dataset)
         
         # Write both train and val losses at the same step
-        total_step = epoch * len(train_dataset) + step
+        total_step = results['num_epochs'] * len(train_dataset) + step
         
         results['val_losses'].append((total_step, val_loss))
         results['train_losses'].append((total_step, train_loss))
@@ -110,18 +116,16 @@ def train_model(model, train_dataset, val_dataset, max_epochs=None):
       
       if step <= 1000 or step % 100 == 0 or step == len(train_dataset) - 1:
         time_remaining = get_time_remaining(start_time, step, len(train_dataset))
-        print(f"\r\tEpoch {epoch} | Step {step}/{len(train_dataset)} | Train Loss: {train_loss:.4f} | Most Recent Val Loss: {val_loss:.4f} | Time Remaining: {time_remaining}", end='')
+        print(f"\r\tEpoch {results['num_epochs']} | Step {step}/{len(train_dataset)} | Train Loss: {train_loss:.4f} | Most Recent Val Loss: {val_loss:.4f} | Time Remaining: {time_remaining}", end='')
     
-    print(f"\nEpoch {epoch} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
-    
-    epoch += 1
+    print(f"\nEpoch {results['num_epochs']} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
     
     os.makedirs(RESULTS_DIR, exist_ok=True)
     os.makedirs(CHECKPOINTS_DIR, exist_ok=True)
     
-    torch.save(model.state_dict(), f'{CHECKPOINTS_DIR}/{model.name}_epoch_{epoch}.pt')
+    torch.save(model.state_dict(), f'{CHECKPOINTS_DIR}/{model.name}_epoch_{results['num_epochs']}.pt')
     
     with open(f'{RESULTS_DIR}/{model.name}.json', 'w') as f:
       json.dump(results, f)
       
-    visualize_loss((results['train_losses'], "Train"), (results['val_losses'], "Test"), title=f"{model.name} Training Losses (Epoch {epoch})")
+    visualize_loss((results['train_losses'], "Train"), (results['val_losses'], "Test"), title=f"{model.name} Training Losses (Epoch {results['num_epochs']})")

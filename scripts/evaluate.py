@@ -13,6 +13,10 @@ if __name__ == "__main__":
   model = get_model_from_args()
   model, _ = load_most_recent_checkpoint(model)
   
+  if model is None:
+    print("No checkpoint found, aborting evaluation.")
+    exit()
+  
   # Load tokenizer and datasets
   tokenizer, _, _, test_dataset = get_tokenizer_and_dataset_from_args(model.config.context_size)
   
