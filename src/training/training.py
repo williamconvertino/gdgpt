@@ -39,6 +39,8 @@ def get_device():
   else:
     print("No GPUs found. Using CPU.")
     device = torch.device('cpu')
+    
+  return device
 
 def model_forward(model, batch, device):
   sequence = batch.to(device)
