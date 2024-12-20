@@ -260,13 +260,19 @@ class GD(nn.Module):
             for i in range(num_beams):
                 idx_next = topk.indices[0, i].unsqueeze(0).unsqueeze(0)
                 score = topk.values[0, i].item()
-                new_x = torch.cat((beam['x'], idx_next), dim=1)
-                new_eos = eos_token is not None and idx_next.item() == eos_token
-                new_sequences.append({
-                    'x': new_x,
-                    'score': beam['score'] + score,
-                    'eos': new_eos
-                })
+                if idx_next.item() == eos_token:
+                  new_sequences.append({
+                      'x': torch.cat((beam['x'], idx_next), dim=1),
+                      'score': beam['score'] + score,
+                      'eos': True
+                    })
+                else:    
+                  new_x = torch.cat((beam['x'], idx_next), dim=1)
+                  new_sequences.append({
+                      'x': new_x,
+                      'score': beam['score'] + score,
+                      'eos': False
+                  })
         
         # Select beam based on normalized score
         new_sequences.sort(key=lambda seq: seq['score'] / (len(seq['x'][0]) + 1), reverse=True)
@@ -277,4 +283,5 @@ class GD(nn.Module):
             break
     
     most_probable_sequence = max(beams, key=lambda seq: seq['score'] / (len(seq['x'][0]) + 1))
+    
     return most_probable_sequence['x']

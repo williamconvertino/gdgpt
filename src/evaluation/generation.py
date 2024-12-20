@@ -3,8 +3,6 @@ import torch
 QUICK_EVAL_SEQUENCES = [  
   "There once was a fox who lived in the forest. He was very hungry and ",
   "There once was a princess who lived in a castle. She was very lonely and ",
-  "There once was a princess who ",
-  "There once was a fox who "
 ]
 
 def quick_eval(model, tokenizer):
@@ -60,10 +58,11 @@ def evaluate_model_generation(model, tokenizer, test_dataset, num_generations=10
     print(true_start)
     print("=" * 100)
     print("<True ending:>")
-    print(f'{true_end}')
+    print(f'{true_start} [{true_end}]')
     print("-" * 100)    
     print("<Generated ending:>")
-    print(f'{generated_end}')
+    print(f'{true_start} [{generated_end}]')
     print("-" * 100)
     print("<Beam search ending:>")
-    print(f'{beam_search_end}')
+    print(f'{true_start} [{beam_search_end}]')
+    print("=" * 100)
