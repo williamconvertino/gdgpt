@@ -19,7 +19,8 @@ class GDConfig:
   wv: str = 'none'
   
   def get_extension(self):
-    return f'{self.d_embed}D_{self.n_layer}L_{self.n_head}H_FF={self.use_ff}_LN_OUT={self.use_ln_out}_COV_FF={self.covariate_ff}_ATTN={self.attn_fn}_WQK={self.wqk}_WV={self.wv}'
+    return f'{self.d_embed}D_{self.n_layer}L_{self.n_head}H_FF={self.use_ff}_LN_OUT={self.use_ln_out}_ATTN={self.attn_fn}_WQK={self.wqk}_WV={self.wv}'
+    # return f'{self.d_embed}D_{self.n_layer}L_{self.n_head}H_FF={self.use_ff}_LN_OUT={self.use_ln_out}_COV_FF={self.covariate_ff}_ATTN={self.attn_fn}_WQK={self.wqk}_WV={self.wv}'
   
   def __post_init__(self):
     assert self.wqk in ['diag', 'full', 'diag_shared', 'full_shared'], 'Invalid W_qk type, must be "diag," "full," "diag_shared" or "full_shared"'
