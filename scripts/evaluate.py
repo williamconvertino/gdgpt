@@ -17,5 +17,8 @@ if __name__ == "__main__":
   tokenizer, _, _, test_dataset = get_tokenizer_and_dataset_from_args(model.config.context_size)
   
   # Train the model
-  # evaluate_model_generation(model, tokenizer, test_dataset)
+  print("<<QUICK EVAL>>")
   quick_eval(model, tokenizer)
+  print("<<FULL EVAL>>")
+  evaluate_model_generation(model, tokenizer, test_dataset)
+  
