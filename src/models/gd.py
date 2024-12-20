@@ -11,7 +11,7 @@ class GDConfig:
   d_embed: int = 512
   n_head: int = 8
   n_layer: int = 1
-  covariate_ff: bool = False
+  use_covariate_ff: bool = False
   use_ff: bool = False
   use_ln_out: bool = False
   attn_fn: str = 'softmax'
@@ -19,7 +19,7 @@ class GDConfig:
   wv: str = 'none'
   
   def get_extension(self):
-    return f'{self.d_embed}D_{self.n_layer}L_{self.n_head}H_FF={self.use_ff}_LN_OUT={self.use_ln_out}_COV_FF={self.covariate_ff}_ATTN={self.attn_fn}_WQK={self.wqk}_WV={self.wv}'
+    return f'{self.d_embed}D_{self.n_layer}L_{self.n_head}H_FF={self.use_ff}_LN_OUT={self.use_ln_out}_COV_FF={self.use_covariate_ff}_ATTN={self.attn_fn}_WQK={self.wqk}_WV={self.wv}'
   
   def __post_init__(self):
     assert self.wqk in ['diag', 'full', 'diag_shared', 'full_shared'], 'Invalid W_qk type, must be "diag," "full," "diag_shared" or "full_shared"'
@@ -83,7 +83,7 @@ class GD(nn.Module):
         nn.Dropout(0.1)
       )
       
-    if config.covariate_ff:
+    if config.use_covariate_ff:
       self.ff_cov = nn.Sequential(
         nn.Linear(config.context_size + 1, 4 * config.d_embed, bias=False),
         nn.GELU(),
@@ -113,7 +113,7 @@ class GD(nn.Module):
     if self.config.use_ff:
       nn.init.normal_(self.ff[1].weight, mean=0, std=0.02)
       nn.init.normal_(self.ff[3].weight, mean=0, std=0.02)
-    if self.config.covariate_ff:
+    if self.config.use_covariate_ff:
       nn.init.normal_(self.ff_cov[0].weight, mean=0, std=0.02)
       nn.init.normal_(self.ff_cov[2].weight, mean=0, std=0.02)
     
@@ -162,7 +162,7 @@ class GD(nn.Module):
     e = self.drop_e(e)
     p = self.drop_p(p)
     
-    if self.config.covariate_ff:
+    if self.config.use_covariate_ff:
       p = p + self.ff_cov(p)
     
     # Krn
