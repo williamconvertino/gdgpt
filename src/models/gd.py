@@ -262,8 +262,8 @@ class GD(nn.Module):
                 score = topk.values[0, i].item()
                 if idx_next.item() == eos_token:
                   new_sequences.append({
-                      'x': torch.cat((beam['x'], idx_next), dim=1),
-                      'score': beam['score'] + score,
+                      'x': beam['x'],
+                      'score': beam['score'],
                       'eos': True
                     })
                 else:    
