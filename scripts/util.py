@@ -60,7 +60,7 @@ def get_tokenizer_and_dataset_from_args(context_size):
     train_dataset = ChildrenStoriesDataset(tokenizer, 'train', context_size=context_size)
     val_dataset = ChildrenStoriesDataset(tokenizer, 'val', context_size=context_size)
     test_dataset = ChildrenStoriesDataset(tokenizer, 'test', context_size=context_size)
-  elif 'combined' in sys.argv[2:]:
+  elif 'combined' in sys.argv[2:] or 'comb' in sys.argv[2:]:
     tokenizer = CombinedTokenizer()
     train_dataset = CombinedDataset(tokenizer, 'train', context_size=context_size)
     val_dataset = CombinedDataset(tokenizer, 'val', context_size=context_size)
@@ -81,7 +81,7 @@ def get_model_from_args():
   
   if 'children_stories' in sys.argv[2:] or 'cs' in sys.argv[2:]:
     vocab_size = CHILDREN_STORIES_TOKENIZER_VOCAB_SIZE
-  elif 'combined' in sys.argv[2:]:
+  elif 'combined' in sys.argv[2:] or 'comb' in sys.argv[2:]:
     vocab_size = COMBINED_TOKENIZER_VOCAB_SIZE
   else:
     vocab_size = TINYSTORIES_TOKENIZER_VOCAB_SIZE

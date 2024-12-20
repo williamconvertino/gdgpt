@@ -85,9 +85,9 @@ class GD(nn.Module):
       
     if config.use_covariate_ff:
       self.ff_cov = nn.Sequential(
-        nn.Linear(config.context_size + 1, 4 * config.d_embed, bias=False),
+        nn.Linear(config.d_embed, 4 * config.d_embed, bias=False),
         nn.GELU(),
-        nn.Linear(4 * config.d_embed, config.context_size + 1, bias=False),
+        nn.Linear(4 * config.d_embed, config.d_embed, bias=False),
         nn.Dropout(0.1)
       )
       
