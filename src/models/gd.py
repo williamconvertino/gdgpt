@@ -276,7 +276,7 @@ class GD(nn.Module):
                   })
         
         # Select beam based on normalized score
-        new_sequences.sort(key=lambda seq: seq['score'] / (len(seq['x'][0]) + 1), reverse=True)
+        new_sequences.sort(key=lambda seq: seq['score'] / (len(seq['x'][0]) + 1), reverse=False)
         beams = new_sequences[:num_beams]
         
         # Break early if all beams have encountered EOS
