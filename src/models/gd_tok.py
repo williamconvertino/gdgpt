@@ -20,7 +20,7 @@ class GDTokConfig:
   tok_alignment: str = 'n'
   
   def get_extension(self):
-    name =  f'{self.d_embed}D_{self.n_layer}L_{self.n_head}H_FF={self.use_ff}_LN_OUT={self.use_ln_out}_ATTN={self.attn_fn}_WQK={self.wqk}_WV={self.wv}'
+    name =  f'{self.d_embed}D_{self.n_layer}L_{self.n_head}H_FF={self.use_ff}_LN_OUT={self.use_ln_out}_ATTN={self.attn_fn}_WQK={self.wqk}_WV={self.wv}_TOK={self.tok_alignment}'
     if self.use_covariate_ff:
       name += '_COV_FF'
     return name
