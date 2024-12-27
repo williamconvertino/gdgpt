@@ -100,6 +100,7 @@ def evaluate_model_generation(model, tokenizer, test_dataset, num_generations=10
       beam_search_sequence = model.beam_search(model_input)
       beam_search_end = tokenizer.decode(beam_search_sequence[0, input_size:].tolist())
       
+    true_start = true_start.replace('\n', '')
     true_end = true_end.replace('\n', '')
     generated_end = generated_end.replace('\n', '')
     beam_search_end = beam_search_end.replace('\n', '')
