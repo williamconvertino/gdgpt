@@ -39,29 +39,37 @@ def quick_eval(model, tokenizer):
   model, device = setup_device(model)
   
   for sequence in QUICK_EVAL_SEQUENCES:
+    
     model_input = tokenizer.encode(sequence)
+    input_size = len(model_input)
     model_input = torch.tensor(model_input).unsqueeze(0)
     
+
     with torch.no_grad():
       model.eval()
       
       model_input = model_input.to(device)
       
       generated_sequence = model.generate(model_input)
-      generated_text = tokenizer.decode(generated_sequence[0].tolist())
+      generated_text = tokenizer.decode(generated_sequence[0].tolist()[input_size:])
       
       beam_search_sequence = model.beam_search(model_input)
-      beam_search_text = tokenizer.decode(beam_search_sequence[0].tolist())
-      
+      beam_search_text = tokenizer.decode(beam_search_sequence[0].tolist()[input_size:])
+    
+    input_text = tokenizer.decode(model_input[0].tolist())
+    sequence = sequence.replace('\n', '')
+    generated_text = generated_text.replace('\n', '')
+    beam_search_text = beam_search_text.replace('\n', '')
+
     print("=" * 100)
     print("<Prompt:> ")
     print(sequence)
     print("=" * 100)
     print("<Generated ending:> ")
-    print(generated_text)
+    print(f'{input_text} [{generated_text}]')
     print("-" * 100)
     print("<Beam search ending:> ")
-    print(beam_search_text)
+    print(f'{input_text} [{beam_search_text}]')
 
 def evaluate_model_generation(model, tokenizer, test_dataset, num_generations=10):
   
@@ -92,6 +100,10 @@ def evaluate_model_generation(model, tokenizer, test_dataset, num_generations=10
       beam_search_sequence = model.beam_search(model_input)
       beam_search_end = tokenizer.decode(beam_search_sequence[0, input_size:].tolist())
       
+    true_end = true_end.replace('\n', '')
+    generated_end = generated_end.replace('\n', '')
+    beam_search_end = beam_search_end.replace('\n', '')
+
     print("=" * 100)
     print("<Prompt:>")
     print(true_start)
