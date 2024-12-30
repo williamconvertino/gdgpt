@@ -149,7 +149,7 @@ class GPT(nn.Module):
     
     # Embeddings
     self.wte = nn.Embedding(config.vocab_size, config.d_embed)
-    self.wpe = nn.Embedding(config.context_size + 1, config.d_embed)
+    self.wpe = nn.Embedding(config.context_size, config.d_embed)
     
     self.ln_e = nn.LayerNorm(config.d_embed, bias=False)
     self.ln_p = nn.LayerNorm(config.d_embed, bias=False)
@@ -195,7 +195,7 @@ class GPT(nn.Module):
     
     # Embeddings
     e = self.wte(x)
-    p = self.wpe(torch.arange(0, S + 1, device=device)).repeat(B, 1, 1)
+    p = self.wpe(torch.arange(0, S, device=device)).repeat(B, 1, 1)
     
     e = self.ln_e(e)
     p = self.ln_p(p)
