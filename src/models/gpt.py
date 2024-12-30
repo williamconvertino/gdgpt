@@ -13,7 +13,7 @@ class GPTConfig:
   n_layer: int = 1
   use_covariate_ff: bool = False
   use_ln_out: bool = True
-  use_ff: bool = False
+  use_ff: bool = True
   use_ppe: bool = False
   attn_fn: str = 'softmax'
   wqk: str = 'full'
