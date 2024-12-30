@@ -12,12 +12,13 @@ class GPTConfig:
   n_head: int = 8
   n_layer: int = 1
   use_covariate_ff: bool = False
+  use_ln_out: bool = True
   use_ff: bool = False
   use_ppe: bool = False
   attn_fn: str = 'softmax'
   wqk: str = 'full'
   wv: str = 'full'
-  
+
   def get_extension(self):
     name =  f'{self.d_embed}D_{self.n_layer}L_{self.n_head}H_FF={self.use_ff}_LN_OUT={self.use_ln_out}_ATTN={self.attn_fn}_WQK={self.wqk}_WV={self.wv}'
     if self.use_covariate_ff:
