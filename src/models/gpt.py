@@ -31,7 +31,6 @@ class GPTConfig:
     assert self.wv in ['none', 'diag', 'full'], 'Invalid W_v type, must be "none," "diag" or "full"'
     assert self.attn_fn in ['softmax', 'linear', 'rbf'], 'Invalid attention function, must be "softmax", "linear" or "rbf"'
 
-
 class Attention(nn.Module):
   def __init__(self, config):
 
@@ -49,18 +48,16 @@ class Attention(nn.Module):
       self.W_k = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
     elif config.wqk == 'full_shared':
       self.W_q = self.W_k = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
-      
-    if config.attn_fn == 'rbf':
-      self.gamma = nn.Parameter(torch.ones(config.n_head, 1, 1))
-    
-    self.drop_krn = nn.Dropout(0.1)
-    
-    # GD step
+
     if config.wv == 'diag':
       self.W_v_diag = nn.Parameter(torch.zeros(config.d_embed))
     elif config.wv == 'full':
       self.W_v = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
-      
+
+    if config.attn_fn == 'rbf':
+      self.gamma = nn.Parameter(torch.ones(config.n_head, 1, 1))
+    
+    self.drop_krn = nn.Dropout(0.1)
     self.drop_gd = nn.Dropout(0.1)
     
     # FF
@@ -80,13 +77,18 @@ class Attention(nn.Module):
     elif self.config.wqk == 'full' or self.config.wqk == 'full_shared':
       nn.init.normal_(self.W_q, mean=0, std=0.02)
       nn.init.normal_(self.W_k, mean=0, std=0.02)
+    if self.config.wv == 'diag':
+      nn.init.normal_(self.W_v_diag, mean=0, std=0.02)
+    elif self.config.wv == 'full':
+      nn.init.normal_(self.W_v, mean=0, std=0.02)
     if self.config.use_ff:
       nn.init.normal_(self.ff[1].weight, mean=0, std=0.02)
       nn.init.normal_(self.ff[3].weight, mean=0, std=0.02)
 
-  def gd_step(self, x, e, p):
+  def forward(self, x, e, p):
     B, S, _ = x.size()
-    
+    device = x.device
+
     if self.config.use_ppe:
       Q = K = p.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
       V = e.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
@@ -109,7 +111,26 @@ class Attention(nn.Module):
     elif self.config.wv == 'full':
       V = V @ self.W_v
     
+    causal_mask = torch.tril(torch.ones(S, S, device=device), diagonal=0).view(1, S, S).bool().logical_not()
+    
+    if self.config.attn_fn == 'softmax':
+      krn = Q @ K.transpose(-1, -2)
+      krn = krn / math.sqrt(self.config.d_embed)
+      krn = krn.masked_fill(causal_mask, float('-inf'))
+      krn = F.softmax(krn, dim=-1)
+    elif self.config.attn_fn == 'linear':
+      krn = Q @ K.transpose(-1, -2)
+      krn = krn / math.sqrt(self.config.d_embed)
+      krn = krn.masked_fill(causal_mask, 0)
+    elif self.config.attn_fn == 'rbf':
+      krn = -torch.cdist(Q, K, p=2).pow(2)
+      krn = krn / (-2 * self.gamma + 1e-6)
+      krn = krn.masked_fill(causal_mask, float('-inf'))
+      krn = torch.exp(krn)
 
+    krn = self.drop_krn(krn)
+    
+    x = krn @ V
     
     # Compute delta f_k
     x = self.drop_gd(x)
@@ -189,48 +210,21 @@ class GPT(nn.Module):
       else:
         x = x + self.ff_cov(x)
 
-    # Krn
-
-      
-    K = x_i @ W_k
-    Q = x_j @ W_q
-    
-    causal_mask = torch.tril(torch.ones(S, S, device=device), diagonal=0).view(1, S, S).bool().logical_not()
-    
-    if self.config.attn_fn == 'softmax':
-      krn = Q @ K.transpose(-1, -2)
-      krn = krn / math.sqrt(self.config.d_embed) # Divide by sqrt(d_embed) for numerical stability, common in attention mechanisms 
-      krn = krn.masked_fill(causal_mask, float('-inf'))
-      krn = F.softmax(krn, dim=-1)
-    elif self.config.attn_fn == 'linear':
-      krn = Q @ K.transpose(-1, -2)
-      krn = krn / math.sqrt(self.config.d_embed)
-      krn = krn.masked_fill(causal_mask, 0)
-    elif self.config.attn_fn == 'rbf':
-      krn = -torch.cdist(Q, K, p=2).pow(2)
-      krn = krn / (-2 * self.gamma + 1e-6) # Add small epsilon for numerical stability
-      krn = krn.masked_fill(causal_mask, float('-inf'))
-      krn = torch.exp(krn)
-    
-    krn = self.drop_krn(krn)
-    
-    # GD steps
-    f_k = torch.zeros_like(e, device=device)
-    for k in range(self.config.n_layer):
-      f_k = f_k + self.gd_step(e, krn, f_k, k)
+    for attn in self.attn:
+      x = x + attn(x, e, p)
       
     if targets is None:
-      f_k = f_k[:, [-1], :] # Inference-time optimization, only consider the last token
+      x = x[:, [-1], :] # Inference-time optimization, only consider the last token
     
     # FF
     if self.config.use_ff:
-      f_k = f_k + self.ff(f_k)
+      x = x + self.ff(x)
     
     # LM Head
     if self.config.use_ln_out:
-      f_k = self.ln_out(f_k)
+      x = self.ln_out(x)
       
-    logits = f_k @ self.ln_e(self.wte.weight).transpose(0, 1) # Need to use the same normalization as the embeddings for consistency
+    logits = x @ self.ln_e(self.wte.weight).transpose(0, 1) # Need to use the same normalization as the embeddings for consistency
     
     if targets is None:
       return logits, None
