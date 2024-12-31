@@ -33,211 +33,155 @@ class GPTConfig:
     assert self.attn_fn in ['softmax', 'linear', 'rbf'], 'Invalid attention function, must be "softmax", "linear" or "rbf"'
 
 class Attention(nn.Module):
+
   def __init__(self, config):
-
     super().__init__()
-
+    
     self.config = config
 
-    if config.wqk == 'diag':
-      self.W_q_diag = nn.Parameter(torch.zeros(config.d_embed))
-      self.W_k_diag = nn.Parameter(torch.zeros(config.d_embed))
-    elif config.wqk == 'diag_shared':
-      self.W_q_diag = self.W_k_diag = nn.Parameter(torch.zeros(config.d_embed))
-    elif config.wqk == 'full':
-      self.W_q = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
-      self.W_k = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
-    elif config.wqk == 'full_shared':
-      self.W_q = self.W_k = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
+    if self.config.use_ppe:
+      self.ln_p = nn.LayerNorm(config.d_embed, bias=False)
+      self.ln_e = nn.LayerNorm(config.d_embed, bias=False)
+    else:
+      self.ln_x = nn.LayerNorm(config.d_embed, bias=False)
 
-    if config.wv == 'diag':
-      self.W_v_diag = nn.Parameter(torch.zeros(config.d_embed))
-    elif config.wv == 'full':
-      self.W_v = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
+    self.W_q = nn.Linear(config.d_embed, config.n_head * config.d_embed, bias=False)
+    self.W_k = nn.Linear(config.d_embed, config.n_head * config.d_embed, bias=False)
+    self.W_v = nn.Linear(config.d_embed, config.n_head * config.d_embed, bias=False)
+    self.W_o = nn.Linear(config.n_head * config.d_embed, config.d_embed, bias=False)
 
-    self.W_o = nn.Parameter(torch.zeros(config.d_embed * config.n_head, config.d_embed))
-
-    if config.attn_fn == 'rbf':
-      self.gamma = nn.Parameter(torch.ones(config.n_head, 1, 1))
+    self.dropout_o = nn.Dropout(config.dropout)
     
-    self.drop_krn = nn.Dropout(0.1)
-    self.drop_gd = nn.Dropout(0.1)
+    self._init_weights()
+
+  def _init_weights(self):
+    nn.init.normal_(self.W_q.weight, std=0.02)
+    nn.init.normal_(self.W_k.weight, std=0.02)
+    nn.init.normal_(self.W_v.weight, std=0.02)
+    nn.init.normal_(self.W_o.weight, std=0.02 / math.sqrt(2 * self.config.n_layer))
+
+  def forward(self, x, e, p):
+    device = x.device
+    B, S, E = x.size()
     
-    # FF
+    if self.config.use_ppe:
+      e = self.ln_e(e)
+      p = self.ln_p(p)
+      Q = self.W_q(p).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
+      K = self.W_k(p).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
+      V = self.W_v(e).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
+    else:
+      x = self.ln_x(x)
+      Q = self.W_q(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
+      K = self.W_k(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
+      V = self.W_v(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
+    
+    attn_output = F.scaled_dot_product_attention(Q, K, V, is_causal=True, dropout_p=self.config.dropout)
+    attn_output = attn_output.transpose(1, 2).contiguous().view(B, S, self.config.n_head * self.config.d_embed)
+    
+    attn_output = self.W_o(attn_output)
+    attn_output = self.dropout_o(attn_output)
+    
+    return attn_output
+  
+class TransformerBlock(nn.Module):
+
+  def __init__(self, config):
+    super().__init__()
+    
+    # Attention
+    self.attn = Attention(config)
+    
+    # Feed Forward
     if config.use_ff:
       self.ff = nn.Sequential(
         nn.LayerNorm(config.d_embed, bias=False),
-        nn.Linear(config.d_embed, 4 * config.d_embed, bias=False),
+        nn.Linear(config.d_embed, config.d_ff, bias=False),
         nn.GELU(),
-        nn.Linear(4 * config.d_embed, config.d_embed, bias=False),
-        nn.Dropout(0.1)
+        nn.Linear(config.d_ff, config.d_embed, bias=False),
+        nn.Dropout(config.dropout)
       )
-
+    
+    self._init_weights()
+    
   def _init_weights(self):
-    if self.config.wqk == 'diag' or self.config.wqk == 'diag_shared':
-      nn.init.normal_(self.W_q_diag, mean=0, std=0.02)
-      nn.init.normal_(self.W_k_diag, mean=0, std=0.02)
-    elif self.config.wqk == 'full' or self.config.wqk == 'full_shared':
-      nn.init.normal_(self.W_q, mean=0, std=0.02)
-      nn.init.normal_(self.W_k, mean=0, std=0.02)
-    if self.config.wv == 'diag':
-      nn.init.normal_(self.W_v_diag, mean=0, std=0.02)
-    elif self.config.wv == 'full':
-      nn.init.normal_(self.W_v, mean=0, std=0.02)
-    nn.init.normal_(self.W_o, mean=0, std=0.02)
     if self.config.use_ff:
-      nn.init.normal_(self.ff[1].weight, mean=0, std=0.02)
-      nn.init.normal_(self.ff[3].weight, mean=0, std=0.02)
+      nn.init.normal_(self.ff[1].weight, std=0.02)
+      nn.init.normal_(self.ff[3].weight, std=0.02)
 
   def forward(self, x, e, p):
-    B, S, _ = x.size()
-    device = x.device
-
-    if self.config.use_ppe:
-      Q = K = p.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
-      V = e.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
-    else:
-      Q = K = V = x.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
-
-    if self.config.wqk == 'diag' or self.config.wqk == 'diag_shared':
-      W_q = torch.diag_embed(self.W_q_diag)
-      W_k = torch.diag_embed(self.W_k_diag)
-      Q = Q @ W_q
-      K = K @ W_k
-    else:
-      W_q = self.W_q
-      W_k = self.W_k
-      Q = Q @ W_q
-      K = K @ W_k
-      
-    if self.config.wv == 'diag':
-      V = V @ torch.diag_embed(self.W_v_diag)
-    elif self.config.wv == 'full':
-      V = V @ self.W_v
-    
-    causal_mask = torch.tril(torch.ones(S, S, device=device), diagonal=0).view(1, S, S).bool().logical_not()
-    
-    if self.config.attn_fn == 'softmax':
-      krn = Q @ K.transpose(-1, -2)
-      krn = krn / math.sqrt(self.config.d_embed)
-      krn = krn.masked_fill(causal_mask, float('-inf'))
-      krn = F.softmax(krn, dim=-1)
-    elif self.config.attn_fn == 'linear':
-      krn = Q @ K.transpose(-1, -2)
-      krn = krn / math.sqrt(self.config.d_embed)
-      krn = krn.masked_fill(causal_mask, 0)
-    elif self.config.attn_fn == 'rbf':
-      krn = -torch.cdist(Q, K, p=2).pow(2)
-      krn = krn / (-2 * self.gamma + 1e-6)
-      krn = krn.masked_fill(causal_mask, float('-inf'))
-      krn = torch.exp(krn)
-
-    krn = self.drop_krn(krn)
-    
-    x = krn @ V
-
-    x = x.transpose(1, 2).contiguous().view(B, S, self.config.n_head * self.config.d_embed)
-    x = x @ self.W_o
-    
-    # Compute delta f_k
-    x = self.drop_gd(x)
-
+    x = x + self.attn(x, e, p)	
     if self.config.use_ff:
       x = x + self.ff(x)
-    
     return x
-  
 
 class GPT(nn.Module):
-  
+
   def __init__(self, config):
     super().__init__()
-    
-    self.config = config
-    self.name = 'GPT_' + config.get_extension()
-    
-    # Embeddings
-    self.wte = nn.Embedding(config.vocab_size, config.d_embed)
-    self.wpe = nn.Embedding(config.context_size, config.d_embed)
-    
-    self.ln_e = nn.LayerNorm(config.d_embed, bias=False)
-    self.ln_p = nn.LayerNorm(config.d_embed, bias=False)
-    
-    self.drop_e = nn.Dropout(0.1)
-    self.drop_p = nn.Dropout(0.1)
-    
-    if config.use_covariate_ff:
-      self.ff_cov = nn.Sequential(
-        nn.Linear(config.d_embed, 4 * config.d_embed, bias=False),
-        nn.GELU(),
-        nn.Linear(4 * config.d_embed, config.d_embed, bias=False),
-        nn.Dropout(0.1)
-      )
 
-    # Attention
-    self.attn = nn.ModuleList([Attention(config) for _ in range(config.n_layer)])
+    self.config = config
+    self.name = f'GPT_{config.get_extension()}'
+    
+    # Embedding
+    self.W_e = nn.Embedding(config.vocab_size, config.d_embed)
+    self.W_p = nn.Embedding(config.context_size, config.d_embed)
+    
+    self.dropout_e = nn.Dropout(config.dropout)
+    self.dropout_p = nn.Dropout(config.dropout)
+    
+    # Attention Blocks
+    self.attn_blocks = nn.ModuleList([TransformerBlock(config) for _ in range(config.n_layer)])
 
     # Output
-    if config.use_ln_out:
-      self.ln_out = nn.LayerNorm(config.d_embed, bias=False)
-
-    # Weight initialization
+    self.ln_out = nn.LayerNorm(config.d_embed, bias=False)
+    self.lm_head = nn.Linear(config.d_embed, config.vocab_size, bias=False)
+    self.W_e.weight = self.lm_head.weight # Weight tying
+    
+    # Initialize weights
     self._init_weights()
-    print(f'Initialized model {self.name} with {self.get_num_params()/1e6:.2f}M parameters')
-          
+
+    # Parameter count
+    self.n_param = sum(p.numel() for p in self.parameters()) - sum(p.numel() for p in self.W_e.parameters()) - sum(p.numel() for p in self.W_p.parameters())
+    print(f'Initialized {self.name} with {self.n_param/1e6:.2f}M parameters')
+
   def _init_weights(self):
-    nn.init.normal_(self.wte.weight, mean=0, std=0.02)
-    nn.init.normal_(self.wpe.weight, mean=0, std=0.02)
-    if self.config.use_covariate_ff:
-      nn.init.normal_(self.ff_cov[0].weight, mean=0, std=0.02)
-      nn.init.normal_(self.ff_cov[2].weight, mean=0, std=0.02)
-    
-  def get_num_params(self):
-    num_parameters = sum(p.numel() for p in self.parameters())
-    num_parameters -= self.wte.weight.numel() # We don't count our token embedding parameters
-    return num_parameters
-    
+    nn.init.normal_(self.W_e.weight, std=0.02)
+    nn.init.normal_(self.W_p.weight, std=0.02)
+
   def forward(self, x, targets=None):
     
     device = x.device
     B, S = x.size()
     
-    # Embeddings
-    e = self.wte(x)
-    p = self.wpe(torch.arange(0, S, device=device)).repeat(B, 1, 1)
+    e = self.W_e(x)
+    p = self.W_p(torch.arange(S, device=device))
     
-    e = self.ln_e(e)
-    p = self.ln_p(p)
-    
-    e = self.drop_e(e)
-    p = self.drop_p(p)
+    e = self.dropout_e(e)
+    p = self.dropout_p(p).unsqueeze(0).expand(B, -1, -1)
     
     x = e + p
 
-    if self.config.use_covariate_ff:
-      if self.config.use_ppe:
-        p = p + self.ff_cov(p)
-      else:
-        x = x + self.ff_cov(x)
+    for attn_block in self.attn_blocks:
+      x = attn_block(x, e, p)
 
-    for attn in self.attn:
-      x = x + attn(x, e, p)
-      
-    if targets is None:
-      x = x[:, [-1], :] # Inference-time optimization, only consider the last token
-    
-    # LM Head
     if self.config.use_ln_out:
       x = self.ln_out(x)
-      
-    logits = x @ self.ln_e(self.wte.weight).transpose(0, 1) # Need to use the same normalization as the embeddings for consistency
-    
+
     if targets is None:
-      return logits, None
-    
-    loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.contiguous().view(-1))
+      logits = self.lm_head(x)
+      loss = None
+    elif self.config.use_nto:
+      targets = targets[:, -1].contiguous()
+      logits = self.lm_head(x)[:, -1,:]
+      loss = F.cross_entropy(logits, targets)
+    else:
+      logits = self.lm_head(x)
+      targets = targets.contiguous()
+      loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))
+      
     return logits, loss
-    
+
   def generate(self, x, max_new_tokens=100, eos_token=None):
     
     for _ in range(max_new_tokens):
