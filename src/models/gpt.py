@@ -86,16 +86,16 @@ class Attention(nn.Module):
       attn = attn / math.sqrt(self.config.d_embed) # Divide by sqrt(d_embed) for numerical stability, common in attention mechanisms 
       attn = attn.masked_fill(causal_mask, float('-inf'))
       attn = F.softmax(attn, dim=-1)
-    elif self.config.attn_fn == 'linear':
-      attn = Q @ K.transpose(-1, -2)
-      attn = attn / math.sqrt(self.config.d_embed)
-      attn = attn.masked_fill(causal_mask, 0)
-    elif self.config.attn_fn == 'rbf':
-      attn = -torch.cdist(Q, K, p=2).pow(2)
-      attn = attn / (-2 * self.gamma + 1e-6) # Add small epsilon for numerical stability
-      attn = attn.clamp(min=-10, max=10) # Clamp to avoid numerical instability
-      attn = attn.masked_fill(causal_mask, float('-inf'))
-      attn = torch.exp(attn)
+    # elif self.config.attn_fn == 'linear':
+    #   attn = Q @ K.transpose(-1, -2)
+    #   attn = attn / math.sqrt(self.config.d_embed)
+    #   attn = attn.masked_fill(causal_mask, 0)
+    # elif self.config.attn_fn == 'rbf':
+    #   attn = -torch.cdist(Q, K, p=2).pow(2)
+    #   attn = attn / (-2 * self.gamma + 1e-6) # Add small epsilon for numerical stability
+    #   attn = attn.clamp(min=-10, max=10) # Clamp to avoid numerical instability
+    #   attn = attn.masked_fill(causal_mask, float('-inf'))
+    #   attn = torch.exp(attn)
     
     attn_output = self.dropout_attn(attn)
     
