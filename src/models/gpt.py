@@ -141,6 +141,9 @@ class Attention(nn.Module):
     
     # Compute delta f_k
     x = self.drop_gd(x)
+
+    if self.config.use_ff:
+      x = x + self.ff(x)
     
     return x
   
@@ -222,10 +225,6 @@ class GPT(nn.Module):
       
     if targets is None:
       x = x[:, [-1], :] # Inference-time optimization, only consider the last token
-    
-    # FF
-    if self.config.use_ff:
-      x = x + self.ff(x)
     
     # LM Head
     if self.config.use_ln_out:
