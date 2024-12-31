@@ -77,7 +77,7 @@ class Attention(nn.Module):
       K = self.W_k(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
       V = self.W_v(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     
-    attn_output = F.scaled_dot_product_attention(Q, K, V, is_causal=True, dropout=self.dropout_attn)
+    attn_output = F.scaled_dot_product_attention(Q, K, V, is_causal=True, dropout_p=0.1 if self.training else 0)
 
     # causal_mask = torch.tril(torch.ones(S, S, device=device), diagonal=0).view(1, S, S).bool().logical_not()
     
