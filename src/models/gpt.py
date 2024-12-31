@@ -82,12 +82,11 @@ class Attention(nn.Module):
     causal_mask = torch.tril(torch.ones(S, S, device=device), diagonal=0).view(1, S, S).bool().logical_not()
     
     if self.config.attn_fn == 'softmax':
-      print(Q.shape, K.shape)
       attn = Q @ K.transpose(-1, -2)
       attn = attn / math.sqrt(self.config.d_embed) # Divide by sqrt(d_embed) for numerical stability, common in attention mechanisms 
       attn = attn.masked_fill(causal_mask, float('-inf'))
       attn = F.softmax(attn, dim=-1)
-      print(attn.shape)
+      
     # elif self.config.attn_fn == 'linear':
     #   attn = Q @ K.transpose(-1, -2)
     #   attn = attn / math.sqrt(self.config.d_embed)
@@ -99,8 +98,10 @@ class Attention(nn.Module):
     #   attn = attn.masked_fill(causal_mask, float('-inf'))
     #   attn = torch.exp(attn)
     
-    attn_output = self.dropout_attn(attn)
+    attn = self.dropout_attn(attn)
     
+    attn_output = attn @ V
+
     attn_output = attn_output.transpose(1, 2).contiguous().view(B, S, self.config.n_head * self.config.d_embed)
     
     attn_output = self.W_o(attn_output)
