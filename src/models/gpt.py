@@ -50,8 +50,8 @@ class Attention(nn.Module):
     self.W_v = nn.Linear(config.d_embed, config.n_head * config.d_embed, bias=False)
     self.W_o = nn.Linear(config.n_head * config.d_embed, config.d_embed, bias=False)
 
-    self.dropout_attn = nn.Dropout(config.dropout)
-    self.dropout_o = nn.Dropout(config.dropout)
+    self.dropout_attn = nn.Dropout(0.1)
+    self.dropout_o = nn.Dropout(0.1)
     
     self._init_weights()
 
@@ -121,7 +121,7 @@ class TransformerBlock(nn.Module):
         nn.Linear(config.d_embed, config.d_ff, bias=False),
         nn.GELU(),
         nn.Linear(config.d_ff, config.d_embed, bias=False),
-        nn.Dropout(config.dropout)
+        nn.Dropout(0.1)
       )
     
     self._init_weights()
@@ -149,8 +149,8 @@ class GPT(nn.Module):
     self.W_e = nn.Embedding(config.vocab_size, config.d_embed)
     self.W_p = nn.Embedding(config.context_size, config.d_embed)
     
-    self.dropout_e = nn.Dropout(config.dropout)
-    self.dropout_p = nn.Dropout(config.dropout)
+    self.dropout_e = nn.Dropout(0.1)
+    self.dropout_p = nn.Dropout(0.1)
     
     # Attention Blocks
     self.attn_blocks = nn.ModuleList([TransformerBlock(config) for _ in range(config.n_layer)])
