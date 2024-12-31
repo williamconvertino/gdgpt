@@ -111,6 +111,8 @@ class TransformerBlock(nn.Module):
   def __init__(self, config):
     super().__init__()
     
+    self.config = config
+
     # Attention
     self.attn = Attention(config)
     
