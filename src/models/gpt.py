@@ -55,6 +55,8 @@ class Attention(nn.Module):
     elif config.wv == 'full':
       self.W_v = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
 
+    self.W_o = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
+
     if config.attn_fn == 'rbf':
       self.gamma = nn.Parameter(torch.ones(config.n_head, 1, 1))
     
@@ -82,6 +84,7 @@ class Attention(nn.Module):
       nn.init.normal_(self.W_v_diag, mean=0, std=0.02)
     elif self.config.wv == 'full':
       nn.init.normal_(self.W_v, mean=0, std=0.02)
+    nn.init.normal_(self.W_o, mean=0, std=0.02)
     if self.config.use_ff:
       nn.init.normal_(self.ff[1].weight, mean=0, std=0.02)
       nn.init.normal_(self.ff[3].weight, mean=0, std=0.02)
@@ -132,6 +135,9 @@ class Attention(nn.Module):
     krn = self.drop_krn(krn)
     
     x = krn @ V
+
+    x = x.transpose(1, 2).contiguous().view(B, S, self.config.n_head * self.config.d_embed)
+    x = x @ self.W_o
     
     # Compute delta f_k
     x = self.drop_gd(x)
