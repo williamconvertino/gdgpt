@@ -118,9 +118,9 @@ class TransformerBlock(nn.Module):
     if config.use_ff:
       self.ff = nn.Sequential(
         nn.LayerNorm(config.d_embed, bias=False),
-        nn.Linear(config.d_embed, config.d_ff, bias=False),
+        nn.Linear(config.d_embed, 4 * config.d_embed, bias=False),
         nn.GELU(),
-        nn.Linear(config.d_ff, config.d_embed, bias=False),
+        nn.Linear(4 * config.d_embed, config.d_embed, bias=False),
         nn.Dropout(0.1)
       )
     
