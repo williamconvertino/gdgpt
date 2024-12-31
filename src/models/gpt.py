@@ -55,7 +55,7 @@ class Attention(nn.Module):
     elif config.wv == 'full':
       self.W_v = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
 
-    self.W_o = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
+    self.W_o = nn.Parameter(torch.zeros(config.d_embed * config.n_head, config.d_embed))
 
     if config.attn_fn == 'rbf':
       self.gamma = nn.Parameter(torch.ones(config.n_head, 1, 1))
