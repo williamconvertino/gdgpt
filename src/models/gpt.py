@@ -97,7 +97,7 @@ class Attention(nn.Module):
       attn = attn.masked_fill(causal_mask, float('-inf'))
       attn = torch.exp(attn)
     
-    attn = self.dropout_attn(attn)
+    attn_output = self.dropout_attn(attn)
     
     attn_output = attn_output.transpose(1, 2).contiguous().view(B, S, self.config.n_head * self.config.d_embed)
     
