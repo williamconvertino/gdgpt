@@ -49,6 +49,9 @@ class Attention(nn.Module):
     self.W_k = nn.Linear(config.d_embed, config.n_head * config.d_embed, bias=False)
     self.W_v = nn.Linear(config.d_embed, config.n_head * config.d_embed, bias=False)
     self.W_o = nn.Linear(config.n_head * config.d_embed, config.d_embed, bias=False)
+    
+    if config.attn_fn == 'rbf':
+      self.gamma = nn.Parameter(torch.tensor(1.0))
 
     self.dropout_attn = nn.Dropout(0.1)
     self.dropout_o = nn.Dropout(0.1)
@@ -59,6 +62,7 @@ class Attention(nn.Module):
     nn.init.normal_(self.W_q.weight, std=0.02)
     nn.init.normal_(self.W_k.weight, std=0.02)
     nn.init.normal_(self.W_v.weight, std=0.02)
+    nn.init.normal_(self.gamma, std=0.02)
     nn.init.normal_(self.W_o.weight, std=0.02 / math.sqrt(2 * self.config.n_layer))
 
   def forward(self, x, e, p):
@@ -92,7 +96,7 @@ class Attention(nn.Module):
       attn = attn.masked_fill(causal_mask, 0)
     elif self.config.attn_fn == 'rbf':
       attn = -torch.cdist(Q, K, p=2).pow(2)
-      attn = attn / (-2 * self.gamma + 1e-6) # Add small epsilon for numerical stability
+      attn = self.gamma * (attn / -2) # Add small epsilon for numerical stability
       attn = attn.clamp(min=-10, max=10) # Clamp to avoid numerical instability
       attn = attn.masked_fill(causal_mask, float('-inf'))
       attn = torch.exp(attn)
