@@ -50,6 +50,7 @@ class Attention(nn.Module):
     self.W_v = nn.Linear(config.d_embed, config.n_head * config.d_embed, bias=False)
     self.W_o = nn.Linear(config.n_head * config.d_embed, config.d_embed, bias=False)
 
+    self.dropout_attn = nn.Dropout(config.dropout)
     self.dropout_o = nn.Dropout(config.dropout)
     
     self._init_weights()
@@ -76,7 +77,26 @@ class Attention(nn.Module):
       K = self.W_k(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
       V = self.W_v(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     
-    attn_output = F.scaled_dot_product_attention(Q, K, V, is_causal=True, dropout_p=self.config.dropout)
+    causal_mask = torch.tril(torch.ones(S, S, device=device), diagonal=0).view(1, S, S).bool().logical_not()
+    
+    if self.config.attn_fn == 'softmax':
+      attn = Q @ K.transpose(-1, -2)
+      attn = attn / math.sqrt(self.config.d_embed) # Divide by sqrt(d_embed) for numerical stability, common in attention mechanisms 
+      attn = attn.masked_fill(causal_mask, float('-inf'))
+      attn = F.softmax(attn, dim=-1)
+    elif self.config.attn_fn == 'linear':
+      attn = Q @ K.transpose(-1, -2)
+      attn = attn / math.sqrt(self.config.d_embed)
+      attn = attn.masked_fill(causal_mask, 0)
+    elif self.config.attn_fn == 'rbf':
+      attn = -torch.cdist(Q, K, p=2).pow(2)
+      attn = attn / (-2 * self.gamma + 1e-6) # Add small epsilon for numerical stability
+      attn = attn.clamp(min=-10, max=10) # Clamp to avoid numerical instability
+      attn = attn.masked_fill(causal_mask, float('-inf'))
+      attn = torch.exp(attn)
+    
+    attn = self.drop_attn(attn)
+    
     attn_output = attn_output.transpose(1, 2).contiguous().view(B, S, self.config.n_head * self.config.d_embed)
     
     attn_output = self.W_o(attn_output)
