@@ -195,10 +195,6 @@ class GPT(nn.Module):
     if targets is None:
       logits = self.lm_head(x)
       loss = None
-    elif self.config.use_nto:
-      targets = targets[:, -1].contiguous()
-      logits = self.lm_head(x)[:, -1,:]
-      loss = F.cross_entropy(logits, targets)
     else:
       logits = self.lm_head(x)
       targets = targets.contiguous()
