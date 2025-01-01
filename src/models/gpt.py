@@ -62,7 +62,8 @@ class Attention(nn.Module):
     nn.init.normal_(self.W_q.weight, std=0.02)
     nn.init.normal_(self.W_k.weight, std=0.02)
     nn.init.normal_(self.W_v.weight, std=0.02)
-    nn.init.normal_(self.gamma, std=0.02)
+    if self.config.attn_fn == 'rbf':
+      nn.init.normal_(self.gamma, std=0.02)
     nn.init.normal_(self.W_o.weight, std=0.02 / math.sqrt(2 * self.config.n_layer))
 
   def forward(self, x, e, p):
