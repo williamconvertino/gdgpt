@@ -9,7 +9,7 @@ def add_src_to_path():
 
 # Automatically installs requirements
 def install_requirements():
-  os.system('pip install -r ../requirements.txt')
+  os.system('pip install -r ../requirements.txt > /dev/null 2>&1')
     
 add_src_to_path()
 install_requirements()
