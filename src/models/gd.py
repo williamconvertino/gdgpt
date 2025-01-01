@@ -49,15 +49,15 @@ class GD(nn.Module):
     
     # Krn
     if config.wqk == 'diag':
-      self.W_q_diag = nn.Parameter(torch.zeros(config.d_embed))
-      self.W_k_diag = nn.Parameter(torch.zeros(config.d_embed))
+      self.W_q_diag = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
+      self.W_k_diag = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
     elif config.wqk == 'diag_shared':
-      self.W_q_diag = self.W_k_diag = nn.Parameter(torch.zeros(config.d_embed))
+      self.W_q_diag = self.W_k_diag = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
     elif config.wqk == 'full':
-      self.W_q = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
-      self.W_k = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
+      self.W_q = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
+      self.W_k = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
     elif config.wqk == 'full_shared':
-      self.W_q = self.W_k = nn.Parameter(torch.zeros(config.d_embed, config.d_embed))
+      self.W_q = self.W_k = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
       
     if config.attn_fn == 'rbf':
       self.gamma = nn.Parameter(torch.ones(config.n_head, 1, 1))
