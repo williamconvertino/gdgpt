@@ -94,11 +94,6 @@ class Attention(nn.Module):
     K = x @ self.W_q
     V = (x - E_wte) @ self.W_q
 
-    # Compute weighted average of token embedding vectors
-    R = torch.softmax(self.wte.weight @ f_k.transpose(1, 2), dim=-1)
-    avg_wte = R.transpose(-1, -2) @ self.wte.weight
-    avg_wte = avg_wte / R.sum(dim=1).unsqueeze(-1)
-
     # Q = self.W_q(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     # K = self.W_k(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     # V = self.W_v(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
