@@ -5,7 +5,7 @@ from torch.nn import functional as F
 from dataclasses import dataclass
 
 @dataclass
-class MID_2Config:
+class M2Config:
   vocab_size: int
   context_size: int = 256
   d_embed: int = 512
@@ -83,6 +83,11 @@ class Attention(nn.Module):
     K = x @ self.W_q
     V = x @ self.W_q
 
+    # Compute weighted average of token embedding vectors
+    R = torch.softmax(self.wte.weight @ f_k.transpose(1, 2), dim=-1)
+    avg_wte = R.transpose(-1, -2) @ self.wte.weight
+    avg_wte = avg_wte / R.sum(dim=1).unsqueeze(-1)
+
     # Q = self.W_q(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     # K = self.W_k(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     # V = self.W_v(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
@@ -151,13 +156,13 @@ class TransformerBlock(nn.Module):
       x = x + self.ff(x)
     return x
 
-class MID_2(nn.Module):
+class M2(nn.Module):
 
   def __init__(self, config):
     super().__init__()
 
     self.config = config
-    self.name = f'MID_2_{config.get_extension()}'
+    self.name = f'M2_{config.get_extension()}'
     
     # Embedding
     self.W_e = nn.Embedding(config.vocab_size, config.d_embed)

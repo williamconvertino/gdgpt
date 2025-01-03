@@ -77,6 +77,7 @@ class Attention(nn.Module):
     B, S, E = x.size()
     
     x = self.ln_x(x)
+    x = x.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
 
     Q = x @ self.W_q
     K = x @ self.W_q
