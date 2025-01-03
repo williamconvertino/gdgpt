@@ -5,7 +5,7 @@ from torch.nn import functional as F
 from dataclasses import dataclass
 
 @dataclass
-class MID_1Config:
+class MID_2Config:
   vocab_size: int
   context_size: int = 256
   d_embed: int = 512
@@ -34,10 +34,11 @@ class MID_1Config:
 
 class Attention(nn.Module):
 
-  def __init__(self, config):
+  def __init__(self, config, wte):
     super().__init__()
     
     self.config = config
+    self.wte = wte
 
     if self.config.use_ppe:
       self.ln_p = nn.LayerNorm(config.d_embed, bias=False)
@@ -119,13 +120,13 @@ class Attention(nn.Module):
   
 class TransformerBlock(nn.Module):
 
-  def __init__(self, config):
+  def __init__(self, config, wte):
     super().__init__()
     
     self.config = config
 
     # Attention
-    self.attn = Attention(config)
+    self.attn = Attention(config, wte)
     
     # Feed Forward
     if config.use_ff:
@@ -150,13 +151,13 @@ class TransformerBlock(nn.Module):
       x = x + self.ff(x)
     return x
 
-class MID_1(nn.Module):
+class MID_2(nn.Module):
 
   def __init__(self, config):
     super().__init__()
 
     self.config = config
-    self.name = f'MID_1_{config.get_extension()}'
+    self.name = f'MID_2_{config.get_extension()}'
     
     # Embedding
     self.W_e = nn.Embedding(config.vocab_size, config.d_embed)
@@ -166,7 +167,7 @@ class MID_1(nn.Module):
     self.dropout_p = nn.Dropout(0.1)
     
     # Attention Blocks
-    self.attn_blocks = nn.ModuleList([TransformerBlock(config) for _ in range(config.n_layer)])
+    self.attn_blocks = nn.ModuleList([TransformerBlock(config, self.W_e) for _ in range(config.n_layer)])
 
     # Output
     self.ln_out = nn.LayerNorm(config.d_embed, bias=False)
