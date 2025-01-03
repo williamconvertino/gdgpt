@@ -85,11 +85,12 @@ class Attention(nn.Module):
     B, S, E = x.size()
     
     x = self.ln_x(x)
+    E_wte = self.E_wte(x)
     x = x.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     
     Q = x @ self.W_q
     K = x @ self.W_q
-    V = (x - self.E_wte(x)) @ self.W_q
+    V = (x - E_wte) @ self.W_q
 
     # Compute weighted average of token embedding vectors
     R = torch.softmax(self.wte.weight @ f_k.transpose(1, 2), dim=-1)
