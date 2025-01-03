@@ -16,3 +16,5 @@ class Tokenizer(GPT2TokenizerFast):
     bpe = ByteLevelBPETokenizer()
     bpe.train_from_iterator(dataset, vocab_size=vocab_size - 1, min_frequency=min_frequency, special_tokens=['<eos>']) # -1 to account for the <eos> token
     bpe.save_model(tokenizer_path)
+
+  
