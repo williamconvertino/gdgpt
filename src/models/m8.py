@@ -5,7 +5,7 @@ from torch.nn import functional as F
 from dataclasses import dataclass
 
 @dataclass
-class M6Config:
+class M8Config:
   vocab_size: int
   context_size: int = 256
   d_embed: int = 512
@@ -51,10 +51,13 @@ class Attention(nn.Module):
     # self.W_v = nn.Linear(config.d_embed, config.n_head * config.d_embed, bias=False)
     
     self.W_q = self.W_k = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
-    
 
     self.W_o = nn.Linear(config.n_head * config.d_embed, config.d_embed, bias=False)
     
+    N_reg = 1.0 / torch.arange(1, config.context_size + 1, device=self.wte.weight.device).unsqueeze(1).float() # 1/N term
+    self.register_buffer('N_reg', N_reg)
+    
+
     if config.attn_fn == 'rbf':
       self.gamma = nn.Parameter(torch.tensor(1.0))
 
@@ -84,12 +87,13 @@ class Attention(nn.Module):
     x = self.ln_x(x)
     E_wte = self.E_wte(x)
     
-    x = x.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
+    p = p.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
+    e = e.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     E_wte = E_wte.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     
-    Q = x @ torch.diag_embed(self.W_q)
-    K = x @ torch.diag_embed(self.W_k)
-    V = x - E_wte
+    Q = p @ torch.diag_embed(self.W_q)
+    K = p @ torch.diag_embed(self.W_k)
+    V = e - E_wte
 
     # Q = self.W_q(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     # K = self.W_k(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
@@ -118,6 +122,8 @@ class Attention(nn.Module):
     attn = self.dropout_attn(attn)
     
     attn_output = attn @ V
+
+    attn_output = self.N_reg[:S] * attn_output
 
     attn_output = attn_output.transpose(1, 2).contiguous().view(B, S, self.config.n_head * self.config.d_embed)
     
@@ -159,13 +165,13 @@ class TransformerBlock(nn.Module):
       x = x + self.ff(x)
     return x
 
-class M6(nn.Module):
+class M8(nn.Module):
 
   def __init__(self, config):
     super().__init__()
 
     self.config = config
-    self.name = f'M6_{config.get_extension()}'
+    self.name = f'M8_{config.get_extension()}'
     
     # Embedding
     self.W_e = nn.Embedding(config.vocab_size, config.d_embed)

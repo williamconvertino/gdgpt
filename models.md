@@ -6,3 +6,4 @@ mid_4 - Using shared (NON diagonal) matrices
 mid_5 - Using shaed DIAGONAL matrices
 mid_6 - Removing W_v
 mid_7 - using 1/N term
+mid_8 - PPE

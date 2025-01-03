@@ -8,3 +8,4 @@ from src.models.m4 import M4, M4Config
 from src.models.m5 import M5, M5Config
 from src.models.m6 import M6, M6Config
 from src.models.m7 import M7, M7Config
+from src.models.m8 import M8, M8Config

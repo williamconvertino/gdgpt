@@ -92,7 +92,7 @@ class Attention(nn.Module):
     
     Q = x @ torch.diag_embed(self.W_q)
     K = x @ torch.diag_embed(self.W_k)
-    V = x
+    V = x - E_wte
 
     # Q = self.W_q(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     # K = self.W_k(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
