@@ -5,7 +5,7 @@ from torch.nn import functional as F
 from dataclasses import dataclass
 
 @dataclass
-class M4Config:
+class M5Config:
   vocab_size: int
   context_size: int = 256
   d_embed: int = 512
@@ -50,8 +50,8 @@ class Attention(nn.Module):
     # self.W_k = nn.Linear(config.d_embed, config.n_head * config.d_embed, bias=False)
     # self.W_v = nn.Linear(config.d_embed, config.n_head * config.d_embed, bias=False)
     
-    self.W_q = self.W_k = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
-    self.W_v = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
+    self.W_q = self.W_k = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
+    self.W_v = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
     
 
     self.W_o = nn.Linear(config.n_head * config.d_embed, config.d_embed, bias=False)
@@ -89,9 +89,9 @@ class Attention(nn.Module):
     x = x.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     E_wte = E_wte.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     
-    Q = x @ self.W_q
-    K = x @ self.W_q
-    V = (x - E_wte) @ self.W_q
+    Q = x @ torch.diag_embed(self.W_q)
+    K = x @ torch.diag_embed(self.W_q)
+    V = (x - E_wte) @ torch.diag_embed(self.W_q)
 
     # Q = self.W_q(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     # K = self.W_k(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
@@ -161,13 +161,13 @@ class TransformerBlock(nn.Module):
       x = x + self.ff(x)
     return x
 
-class M4(nn.Module):
+class M5(nn.Module):
 
   def __init__(self, config):
     super().__init__()
 
     self.config = config
-    self.name = f'M4_{config.get_extension()}'
+    self.name = f'M5_{config.get_extension()}'
     
     # Embedding
     self.W_e = nn.Embedding(config.vocab_size, config.d_embed)
