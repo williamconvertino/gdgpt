@@ -6,3 +6,4 @@ from src.models.m2 import M2, M2Config
 from src.models.m3 import M3, M3Config
 from src.models.m4 import M4, M4Config
 from src.models.m5 import M5, M5Config
+from src.models.m6 import M6, M6Config

@@ -91,8 +91,8 @@ class Attention(nn.Module):
     E_wte = E_wte.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     
     Q = x @ torch.diag_embed(self.W_q)
-    K = x @ torch.diag_embed(self.W_q)
-    V = (x - E_wte) @ torch.diag_embed(self.W_q)
+    K = x @ torch.diag_embed(self.W_k)
+    V = (x - E_wte) @ torch.diag_embed(self.W_v)
 
     # Q = self.W_q(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     # K = self.W_k(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)

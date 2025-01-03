@@ -5,7 +5,7 @@ from torch.nn import functional as F
 from dataclasses import dataclass
 
 @dataclass
-class M1Config:
+class M6Config:
   vocab_size: int
   context_size: int = 256
   d_embed: int = 512
@@ -34,10 +34,11 @@ class M1Config:
 
 class Attention(nn.Module):
 
-  def __init__(self, config):
+  def __init__(self, config, wte):
     super().__init__()
     
     self.config = config
+    self.wte = wte
 
     if self.config.use_ppe:
       self.ln_p = nn.LayerNorm(config.d_embed, bias=False)
@@ -49,9 +50,7 @@ class Attention(nn.Module):
     # self.W_k = nn.Linear(config.d_embed, config.n_head * config.d_embed, bias=False)
     # self.W_v = nn.Linear(config.d_embed, config.n_head * config.d_embed, bias=False)
     
-    self.W_q = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
-    self.W_k = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
-    self.W_v = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
+    self.W_q = self.W_k = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
     
 
     self.W_o = nn.Linear(config.n_head * config.d_embed, config.d_embed, bias=False)
@@ -67,21 +66,30 @@ class Attention(nn.Module):
   def _init_weights(self):
     nn.init.normal_(self.W_q, std=0.02)
     nn.init.normal_(self.W_k, std=0.02)
-    nn.init.normal_(self.W_v, std=0.02)
     if self.config.attn_fn == 'rbf':
       nn.init.normal_(self.gamma, std=0.02)
     nn.init.normal_(self.W_o.weight, std=0.02 / math.sqrt(2 * self.config.n_layer))
+
+  def E_wte(self, x):
+    f_k = torch.zeros_like(x, device=x.device)
+    R = torch.softmax(self.wte.weight @ f_k.transpose(1, 2), dim=-1)
+    avg_wte = R.transpose(-1, -2) @ self.wte.weight
+    avg_wte = avg_wte / R.sum(dim=1).unsqueeze(-1)
+    return avg_wte
 
   def forward(self, x, e, p):
     device = x.device
     B, S, E = x.size()
     
     x = self.ln_x(x)
+    E_wte = self.E_wte(x)
+    
     x = x.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
-
-    Q = x @ self.W_q
-    K = x @ self.W_k
-    V = x @ self.W_v
+    E_wte = E_wte.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
+    
+    Q = x @ torch.diag_embed(self.W_q)
+    K = x @ torch.diag_embed(self.W_k)
+    V = x
 
     # Q = self.W_q(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     # K = self.W_k(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
@@ -120,13 +128,13 @@ class Attention(nn.Module):
   
 class TransformerBlock(nn.Module):
 
-  def __init__(self, config):
+  def __init__(self, config, wte):
     super().__init__()
     
     self.config = config
 
     # Attention
-    self.attn = Attention(config)
+    self.attn = Attention(config, wte)
     
     # Feed Forward
     if config.use_ff:
@@ -151,13 +159,13 @@ class TransformerBlock(nn.Module):
       x = x + self.ff(x)
     return x
 
-class M1(nn.Module):
+class M6(nn.Module):
 
   def __init__(self, config):
     super().__init__()
 
     self.config = config
-    self.name = f'M1_{config.get_extension()}'
+    self.name = f'M6_{config.get_extension()}'
     
     # Embedding
     self.W_e = nn.Embedding(config.vocab_size, config.d_embed)
@@ -167,7 +175,7 @@ class M1(nn.Module):
     self.dropout_p = nn.Dropout(0.1)
     
     # Attention Blocks
-    self.attn_blocks = nn.ModuleList([TransformerBlock(config) for _ in range(config.n_layer)])
+    self.attn_blocks = nn.ModuleList([TransformerBlock(config, self.W_e) for _ in range(config.n_layer)])
 
     # Output
     self.ln_out = nn.LayerNorm(config.d_embed, bias=False)
