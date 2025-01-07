@@ -11,3 +11,4 @@ from src.models.m7 import M7, M7Config
 from src.models.m8 import M8, M8Config
 from src.models.m9 import M9, M9Config
 from src.models.m10 import M10, M10Config
+from src.models.pure import PURE, PUREConfig
