@@ -160,7 +160,10 @@ class TransformerBlock(nn.Module):
       nn.init.normal_(self.ff[3].weight, std=0.02)
 
   def forward(self, x, e, p):
-    x = x + self.attn(x, e, p)	
+    if self.config.use_skip:
+      x = x + self.attn(x, e, p)	
+    else:
+      x = self.attn(x, e, p)
     if self.config.use_ff:
       x = x + self.ff(x)
     return x
