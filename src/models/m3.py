@@ -26,6 +26,8 @@ class M3Config:
       name += '_COV_FF'
     if self.use_ppe:
       name += '_PPE'
+    if not self.use_skip:
+      name += '_NO_SKIP'
     return name
   
   def __post_init__(self):
