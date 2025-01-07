@@ -5,7 +5,7 @@ from torch.nn import functional as F
 from dataclasses import dataclass
 
 @dataclass
-class M4Config:
+class PUREConfig:
   vocab_size: int
   context_size: int = 256
   d_embed: int = 512
@@ -15,7 +15,7 @@ class M4Config:
   use_ln_out: bool = True
   use_ff: bool = True
   use_ppe: bool = False
-  attn_fn: str = 'softmax'
+  attn_fn: str = 'linear'
   wqk: str = 'full'
   wv: str = 'full'
   use_skip: bool = True
@@ -51,12 +51,14 @@ class Attention(nn.Module):
     # self.W_k = nn.Linear(config.d_embed, config.n_head * config.d_embed, bias=False)
     # self.W_v = nn.Linear(config.d_embed, config.n_head * config.d_embed, bias=False)
     
-    self.W_q = self.W_k = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
-    self.W_v = nn.Parameter(torch.zeros(config.n_head, config.d_embed, config.d_embed))
-    
+    self.W_q = self.W_k = nn.Parameter(torch.zeros(config.n_head, config.d_embed))
 
     self.W_o = nn.Linear(config.n_head * config.d_embed, config.d_embed, bias=False)
     
+    N_reg = 1.0 / torch.arange(1, config.context_size + 1, device=self.wte.weight.device).unsqueeze(1).float() # 1/N term
+    self.register_buffer('N_reg', N_reg)
+    
+
     if config.attn_fn == 'rbf':
       self.gamma = nn.Parameter(torch.tensor(1.0))
 
@@ -68,14 +70,12 @@ class Attention(nn.Module):
   def _init_weights(self):
     nn.init.normal_(self.W_q, std=0.02)
     nn.init.normal_(self.W_k, std=0.02)
-    nn.init.normal_(self.W_v, std=0.02)
     if self.config.attn_fn == 'rbf':
       nn.init.normal_(self.gamma, std=0.02)
     nn.init.normal_(self.W_o.weight, std=0.02 / math.sqrt(2 * self.config.n_layer))
 
-  def E_wte(self, x):
-    f_k = torch.zeros_like(x, device=x.device)
-    R = torch.softmax(self.wte.weight @ f_k.transpose(1, 2), dim=-1)
+  def E_wte(self, e):
+    R = torch.softmax(self.wte.weight @ e.transpose(1, 2), dim=-1)
     avg_wte = R.transpose(-1, -2) @ self.wte.weight
     avg_wte = avg_wte / R.sum(dim=1).unsqueeze(-1)
     return avg_wte
@@ -84,22 +84,17 @@ class Attention(nn.Module):
     device = x.device
     B, S, E = x.size()
     
-    x = self.ln_x(x)
-    E_wte = self.E_wte(x)
+    # x = self.ln_x(x)
+    E_wte = self.E_wte(e)
     
     x = x.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
+    e = e.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     E_wte = E_wte.repeat(1, 1, self.config.n_head).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
     
-    Q = x @ self.W_q
-    K = x @ self.W_k
-    V = (x - E_wte) @ self.W_v
-
-    # Q = self.W_q(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
-    # K = self.W_k(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
-    # V = self.W_v(x).view(B, S, self.config.n_head, self.config.d_embed).transpose(1, 2)
+    Q = x @ torch.diag_embed(self.W_q)
+    K = x @ torch.diag_embed(self.W_k)
+    V = e - E_wte
     
-    # attn_output = F.scaled_dot_product_attention(Q, K, V, is_causal=True, dropout_p=0.1 if self.training else 0)
-
     causal_mask = torch.tril(torch.ones(S, S, device=device), diagonal=0).view(1, S, S).bool().logical_not()
     
     if self.config.attn_fn == 'softmax':
@@ -121,6 +116,8 @@ class Attention(nn.Module):
     attn = self.dropout_attn(attn)
     
     attn_output = attn @ V
+
+    attn_output = self.N_reg[:S] * attn_output
 
     attn_output = attn_output.transpose(1, 2).contiguous().view(B, S, self.config.n_head * self.config.d_embed)
     
@@ -162,13 +159,13 @@ class TransformerBlock(nn.Module):
       x = x + self.ff(x)
     return x
 
-class M4(nn.Module):
+class PURE(nn.Module):
 
   def __init__(self, config):
     super().__init__()
 
     self.config = config
-    self.name = f'M4_{config.get_extension()}'
+    self.name = f'PURE_{config.get_extension()}'
     
     # Embedding
     self.W_e = nn.Embedding(config.vocab_size, config.d_embed)
