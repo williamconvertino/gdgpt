@@ -119,7 +119,7 @@ def train_model(model, train_dataset, val_dataset, loaded_results=None, max_epoc
       
       if step <= 1000 or step % 100 == 0 or step == len(train_dataset) - 1:
         time_remaining = get_time_remaining(start_time, step, len(train_dataset))
-        print(f"\r\tEpoch {results['num_epochs']} | Step {step}/{len(train_dataset)} | Train Loss: {train_loss:.4f} | Most Recent Val Loss: {val_loss:.4f} | Time Remaining: {time_remaining}", flush=True)
+        print(f"\r\tEpoch {results['num_epochs']} | Step {step}/{len(train_dataset)} | Train Loss: {train_loss:.4f} | Most Recent Val Loss: {val_loss:.4f} | Time Remaining: {time_remaining}", end='')
         # sys.stdout.write(f"\r\tEpoch {results['num_epochs']} | Step {step}/{len(train_dataset)} | Train Loss: {train_loss:.4f} | Most Recent Val Loss: {val_loss:.4f} | Time Remaining: {time_remaining}")
         # sys.stdout.flush()
 
