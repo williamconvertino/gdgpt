@@ -124,7 +124,8 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
       
       print("=" * 100)
       print(tokenizer.decode(model_input.tolist()))
-      print(tokenizer.decode(beam_search_sequence.tolist()))
+      print(beam_search_sequence.shape)
+      print(tokenizer.decode(beam_search_sequence[0].tolist()))
       print("=" * 100)
       
       beam_search_sequence = beam_search_sequence[input_size:].tolist()
