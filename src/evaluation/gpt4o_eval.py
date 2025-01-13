@@ -110,11 +110,9 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
 
     model_input = sequence[:input_size]
     
-    if tokenizer.eos_token_id in model_input: # Exclude sequences with incomplete prompts, to avoid confusion in the GPT-4o evaluation
-      print(f"Skipping sequence {i} due to incomplete prompt.")
-      print(f"Prompt: {tokenizer.decode(model_input.tolist())}")
-      num_skipped += 1
-      continue
+    if tokenizer.eos_token_id in model_input:
+      model_input = model_input[model_input.index(tokenizer.eos_token_id) + 1:]
+      print(f"Updated input: {tokenizer.decode(model_input.tolist())}")
     
     with torch.no_grad():
       model.eval()
