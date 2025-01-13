@@ -111,8 +111,7 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
     model_input = sequence[:input_size]
     
     if tokenizer.eos_token_id in model_input:
-      eos_index = (model_input == tokenizer.eos_token_id)[-1].item()
-      # model_input = model_input[model_input.index(tokenizer.eos_token_id) + 1:]
+      model_input = model_input[model_input.tolist().index(tokenizer.eos_token_id) + 1:]
       print(f"Updated input: {tokenizer.decode(model_input.tolist())}")
     
     with torch.no_grad():
