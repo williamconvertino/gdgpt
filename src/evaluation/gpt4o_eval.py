@@ -170,7 +170,6 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
 def create_batch():
   batch_input_file = client.files.create(
     file=open(f'{INPUT_DIR}/{FILE_NAME}_input.jsonl', 'rb'),
-    name='{FILE_NAME}_input.jsonl',
     purpose="batch"
   )
   batch_input_id = batch_input_file.id
