@@ -121,7 +121,8 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
       beam_search_sequence = beam_search_sequence[0, input_size:].tolist()
       if tokenizer.eos_token_id in beam_search_sequence:
         print(f"EOS token found in beam search sequence {i}.")
-        print(f"Beam: {tokenizer.decode(beam_search_sequence)}")
+        exit()
+        # print(f"Beam: {tokenizer.decode(beam_search_sequence)}")
       
       if len(beam_search_sequence) < 2: # Exclude sequences with less than 2 tokens, to avoid confusion in the GPT-4o evaluation
         print(f"Skipping sequence {i} due to insufficient length.")
