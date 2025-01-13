@@ -113,8 +113,6 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
 
     model_input = sequence[:input_size]
     
-    print(tokenizer.decode(model_input.tolist()))
-    
     with torch.no_grad():
       model.eval()
       
