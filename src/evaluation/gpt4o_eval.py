@@ -126,9 +126,10 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
       print(tokenizer.decode(model_input.tolist()))
       print(beam_search_sequence.shape)
       print(tokenizer.decode(beam_search_sequence[0].tolist()))
+      print(tokenizer.decode(beam_search_sequence[0, input_size:].tolist()))
       print("=" * 100)
       
-      beam_search_sequence = beam_search_sequence[input_size:].tolist()
+      beam_search_sequence = beam_search_sequence[0, input_size:].tolist()
       if tokenizer.eos_token_id in beam_search_sequence:
         print(f"EOS token found in beam search sequence {i}.")
         # print(f"Prompt: {tokenizer.decode(model_input.tolist())}")
