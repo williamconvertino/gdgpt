@@ -17,7 +17,7 @@ env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../.env'
 assert os.path.exists(env_path), ".env file not found at {env_path}."
 
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-
+print(f"OpenAI API key: {OPENAI_API_KEY}")
 assert OPENAI_API_KEY is not None, "OpenAI API key not found in .env file."
 
 client = OpenAI(api_key=OPENAI_API_KEY)
