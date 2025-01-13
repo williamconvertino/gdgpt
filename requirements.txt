@@ -4,3 +4,4 @@ transformers
 tokenizers
 numpy
 matplotlib
+python-dotenv
