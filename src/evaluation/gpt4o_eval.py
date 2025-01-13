@@ -172,7 +172,7 @@ def create_batch():
   batch_input_id = batch_input_file.id
   batch = client.batches.create(
     input_file_id=batch_input_id,
-    endpoint="v1/chat/completions",
+    endpoint="/v1/chat/completions",
     completion_window=24,
     metadata={
       'description': f'{MODEL} evaluation for GDGPT'
