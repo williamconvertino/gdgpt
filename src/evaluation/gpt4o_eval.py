@@ -99,7 +99,7 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
   
   eval_items = []
   
-  for batch in enumerate(test_dataset):
+  for i, batch in enumerate(test_dataset):
     
     if i >= num_generations:
       break
