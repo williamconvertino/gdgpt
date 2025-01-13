@@ -11,7 +11,10 @@ OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../dat
 
 MODEL = 'gpt-4o-mini'
 
-OPENAI_API_KEY = load_dotenv('OPENAI_API_KEY')
+assert load_dotenv('OPENAI_API_KEY'), "OpenAI API key not found in .env file."
+
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 SYSTEM_PROMPT = "You are an expert writing evaluator designed to assess student story completions. Your role is to provide constructive, fair, and detailed evaluations based on specific rubric criteria."
