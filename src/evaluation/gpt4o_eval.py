@@ -12,7 +12,7 @@ OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../dat
 
 MODEL = 'gpt-4o-mini'
 FILE_NAME = f"{MODEL}_eval_input.jsonl"
-BATCH_ID = None
+BATCH_ID = 'batch_678594cc4a008190b4ffc6ae686aecc8'
 
 env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../.env')
 assert os.path.exists(env_path), ".env file not found at {env_path}."
