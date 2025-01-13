@@ -63,6 +63,15 @@ def load_most_recent_checkpoint(model, max_epochs=None):
   print(f"Loaded model with epoch={latest_epoch}")
   return model, results
 
+def get_flags_from_args():
+  flags = []
+  for arg in sys.argv[2:]:
+    if '=' in arg:
+      continue
+    if arg.startswith('--'):
+      flags.append(arg[2:])
+  return flags
+
 def get_tokenizer_and_dataset_from_args(context_size):
   
   if 'children_stories' in sys.argv[2:] or 'cs' in sys.argv[2:]:
