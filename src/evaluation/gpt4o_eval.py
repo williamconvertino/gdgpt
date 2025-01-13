@@ -3,6 +3,7 @@ import os
 import time
 from openai import OpenAI
 from dotenv import load_dotenv
+import json
 
 from src.util import get_time_remaining
 
@@ -87,23 +88,20 @@ Provide your assessment below:
 """
 
 def get_request_object(custom_id, content):
-  return {
+    return {
         "custom_id": f"{custom_id}",
         "method": "POST",
         "url": "/v1/chat/completions",
         "body": {
-          "model": MODEL,
-          "messages": [
-            {
-              "role": "system", "content": SYSTEM_PROMPT
-            },
-            {
-              "role": "user", "content": content
-            }
-          ],
-          "max_tokens": 1000
+            "model": MODEL,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": content}
+            ],
+            "max_tokens": 1000
         }
-      }
+    }
+
 
 def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
   
@@ -163,8 +161,7 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
   os.makedirs(INPUT_DIR, exist_ok=True)
   with open(f'{INPUT_DIR}/{FILE_NAME}_input.jsonl', 'w') as f:
     for item in eval_items:
-      f.write(f"{item}\n")
-      
+      f.write(f"{json.dumps(item)}\n")
   print(f"Generated inputs for GPT model:{MODEL}\n Processed {i}, skipped {num_skipped}.")
   
 def create_batch():
