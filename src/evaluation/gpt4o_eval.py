@@ -105,9 +105,8 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
       break
     
     sequence = batch[0]
-    # sequence = sequence.tolist()
-    # sequence = sequence[len(sequence) - 1 - sequence[::-1].index(tokenizer.eos_token_id):] # Trim sequence to include only the most recent story
-    # sequence = torch.tensor(sequence).unsqueeze(0)
+    eos_index = len(sequence) - 1 - sequence.tolist()[::-1].index(tokenizer.eos_token_id)
+    sequence = sequence[eos_index:] # Trim sequence to include only the most recent story
     
     input_size = model.config.context_size // 2
 
