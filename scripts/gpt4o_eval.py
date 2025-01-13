@@ -13,7 +13,7 @@ if __name__ == "__main__":
   flags = get_flags_from_args()
   
   if 'input' in flags:
-    
+    print("Creating inputs")
     model = get_model_from_args()
     model, _ = load_most_recent_checkpoint(model)
     
@@ -22,6 +22,7 @@ if __name__ == "__main__":
     generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10)
     
   elif 'batch' in flags:
+    print("Creating batch")
     create_batch()
   elif 'check' in flags:
     pass
