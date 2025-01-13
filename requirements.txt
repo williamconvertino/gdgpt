@@ -5,3 +5,4 @@ tokenizers
 numpy
 matplotlib
 python-dotenv
+openai

@@ -1,6 +1,8 @@
 import torch
 import os
 import time
+from openai import OpenAI
+from dotenv import load_dotenv
 
 from src.util import get_time_remaining
 
@@ -8,6 +10,9 @@ INPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/evaluations/output')
 
 MODEL = 'gpt-4o-mini'
+
+OPENAI_API_KEY = load_dotenv('OPENAI_API_KEY')
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 SYSTEM_PROMPT = "You are an expert writing evaluator designed to assess student story completions. Your role is to provide constructive, fair, and detailed evaluations based on specific rubric criteria."
 
@@ -152,3 +157,7 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
       f.write(f"{item}\n")
       
   print(f"Generated inputs for GPT model:{MODEL}\n Processed {i}, skipped {num_skipped}.")
+  
+def create_batch():
+  
+  
