@@ -253,21 +253,25 @@ class M1(nn.Module):
             topk = torch.topk(logits[:, -1, :], num_beams, dim=-1)
             
             for i in range(num_beams):
-                idx_next = topk.indices[0, i].unsqueeze(0).unsqueeze(0)
-                score = topk.values[0, i].item()
-                if idx_next.item() == eos_token:
-                  new_sequences.append({
-                      'x': beam['x'],
-                      'score': beam['score'],
-                      'eos': True
-                    })
-                else:    
-                  new_x = torch.cat((beam['x'], idx_next), dim=1)
-                  new_sequences.append({
-                      'x': new_x,
-                      'score': beam['score'] + score,
-                      'eos': False
-                  })
+                
+                x = beam['x']
+                score = beam['score']
+                eos = beam['eos']
+                
+                next_idx = topk.indices[0, i].unsqueeze(0).unsqueeze(0)
+                next_score = topk.values[0, i].item()
+                
+                if next_idx == eos_token:
+                    eos = True
+                else:
+                    x = torch.cat((x, next_idx), dim=1)
+                    score += next_score
+                
+                new_sequences.append({
+                    'x': x,
+                    'score': score,
+                    'eos': eos
+                })
         
         # Select beam based on normalized score
         new_sequences.sort(key=lambda seq: seq['score'] / (len(seq['x'][0]) + 1), reverse=True)
