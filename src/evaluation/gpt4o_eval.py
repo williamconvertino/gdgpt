@@ -110,10 +110,6 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
 
     model_input = sequence[:input_size]
     
-    # if tokenizer.eos_token_id in model_input:
-    #   model_input = model_input[model_input.tolist().index(tokenizer.eos_token_id) + 1:]
-    #   print(f"Updated input: {tokenizer.decode(model_input.tolist())}")
-    
     with torch.no_grad():
       model.eval()
       
@@ -122,20 +118,11 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
       
       beam_search_sequence = model.beam_search(model_input.unsqueeze(0))
       
-      print("=" * 100)
-      print(tokenizer.decode(model_input.tolist()))
-      print(beam_search_sequence.shape)
-      print(tokenizer.decode(beam_search_sequence[0].tolist()))
-      print(tokenizer.decode(beam_search_sequence[0, input_size:].tolist()))
-      print("=" * 100)
-      
       beam_search_sequence = beam_search_sequence[0, input_size:].tolist()
       if tokenizer.eos_token_id in beam_search_sequence:
         print(f"EOS token found in beam search sequence {i}.")
-        # print(f"Prompt: {tokenizer.decode(model_input.tolist())}")
         print(f"Beam: {tokenizer.decode(beam_search_sequence)}")
-      # eos_token_id = beam_search_sequence.index(tokenizer.eos_token_id) if tokenizer.eos_token_id in beam_search_sequence else len(beam_search_sequence)
-      # beam_search_sequence = beam_search_sequence[:eos_token_id] # Remove EOS token if present
+      
       if len(beam_search_sequence) < 2: # Exclude sequences with less than 2 tokens, to avoid confusion in the GPT-4o evaluation
         print(f"Skipping sequence {i} due to insufficient length.")
         print(f"Prompt: {tokenizer.decode(model_input.tolist())}")
