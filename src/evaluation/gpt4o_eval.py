@@ -159,4 +159,4 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
   print(f"Generated inputs for GPT model:{MODEL}\n Processed {i}, skipped {num_skipped}.")
   
 def create_batch():
-  pass
+  print(OPENAI_API_KEY)
