@@ -184,7 +184,9 @@ def check_batch():
   assert BATCH_ID is not None, "Batch ID not provided."
   batch = client.batches.retrieve(BATCH_ID)
   print(f"Batch status: {batch.status}")
-  print(f"Batch completion count: {batch.completion_count}")
+  print(batch)
+  # print(f"Batch status: {batch.status}")
+  # print(f"Batch completion count: {batch.completion_count}")
   
 def cancel_batch():
   assert BATCH_ID is not None, "Batch ID not provided."
