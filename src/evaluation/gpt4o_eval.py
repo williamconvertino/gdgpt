@@ -121,6 +121,12 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
       story_true_end = tokenizer.decode(sequence[input_size:].tolist())
       
       beam_search_sequence = model.beam_search(model_input.unsqueeze(0))
+      
+      print("=" * 100)
+      print(tokenizer.decode(model_input.tolist()))
+      print(tokenizer.decode(beam_search_sequence.tolist()))
+      print("=" * 100)
+      
       beam_search_sequence = beam_search_sequence[input_size:].tolist()
       if tokenizer.eos_token_id in beam_search_sequence:
         print(f"EOS token found in beam search sequence {i}.")
