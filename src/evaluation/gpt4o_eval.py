@@ -10,12 +10,15 @@ INPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/evaluations/output')
 
 MODEL = 'gpt-4o-mini'
+FILE_NAME = f"{MODEL}_eval_input.jsonl"
+BATCH_ID = None
 
 env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../.env')
 assert os.path.exists(env_path), ".env file not found at {env_path}."
-assert load_dotenv(env_path), "OpenAI API key not found in .env file."
 
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+
+assert OPENAI_API_KEY is not None, "OpenAI API key not found in .env file."
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -157,11 +160,48 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
       print(f"\r{i}/{num_generations} ({100 * i / num_generations:.2f}%) | Time Remaining: {time_remaining}", end='')
     
   os.makedirs(INPUT_DIR, exist_ok=True)
-  with open(f'{INPUT_DIR}/gpt4o_eval_input.jsonl', 'w') as f:
+  with open(f'{INPUT_DIR}/{FILE_NAME}_input.jsonl', 'w') as f:
     for item in eval_items:
       f.write(f"{item}\n")
       
   print(f"Generated inputs for GPT model:{MODEL}\n Processed {i}, skipped {num_skipped}.")
   
 def create_batch():
-  print(OPENAI_API_KEY)
+  batch_input_file = client.files.create(
+    file=open(f'{INPUT_DIR}/{FILE_NAME}_input.jsonl', 'rb'),
+    name='{FILE_NAME}_input.jsonl',
+    purpose="batch"
+  )
+  batch_input_id = batch_input_file.id
+  batch = client.batches.create(
+    input_file_id=batch_input_id,
+    endpoint="v1/chat/completions",
+    completion_window=24,
+    metadata={
+      'description': f'{MODEL} evaluation for GDGPT'
+    }
+  )
+  print(f"Created batch with ID: {batch.id}")
+
+def check_batch():
+  assert BATCH_ID is not None, "Batch ID not provided."
+  batch = client.batches.retrieve(BATCH_ID)
+  print(f"Batch status: {batch.status}")
+  print(f"Batch completion count: {batch.completion_count}")
+  
+def cancel_batch():
+  assert BATCH_ID is not None, "Batch ID not provided."
+  client.batches.cancel(BATCH_ID)
+  print(f"Cancelled batch with ID: {BATCH_ID}")
+  
+def parse_batch():
+  assert BATCH_ID is not None, "Batch ID not provided."
+  batch = client.batches.retrieve(BATCH_ID)
+  completions = client.batches.list_completions(BATCH_ID)
+  
+  os.makedirs(OUTPUT_DIR, exist_ok=True)
+  with open(f'{OUTPUT_DIR}/{FILE_NAME}_output.jsonl', 'w') as f:
+    for completion in completions:
+      f.write(f"{completion}\n")
+      
+  print(f"Saved completions to {OUTPUT_DIR}/{FILE_NAME}_output.jsonl")
