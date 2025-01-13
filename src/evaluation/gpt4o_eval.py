@@ -11,7 +11,7 @@ OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../dat
 
 MODEL = 'gpt-4o-mini'
 
-assert load_dotenv('OPENAI_API_KEY'), "OpenAI API key not found in .env file."
+assert load_dotenv('../../.env'), "OpenAI API key not found in .env file."
 
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
