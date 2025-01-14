@@ -209,7 +209,7 @@ def parse_batch():
   
   batch_input = [json.loads(line) for line in output_text.split('\n') if line]
   
-  print(batch_output[0])
+  print(batch_input[0])
   
   # print(batch_input[0])
   
