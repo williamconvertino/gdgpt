@@ -244,7 +244,7 @@ def parse_batch():
     plot_score = int(batch_output[i].split('<PLOT_GRADE>')[1].split('</PLOT_GRADE>')[0])
     creativity_score = int(batch_output[i].split('<CREATIVITY_GRADE>')[1].split('</CREATIVITY_GRADE>')[0])
     
-    if 'true' in input_ids:
+    if 'true' in input_ids[i]:
       true['grammar'].append(grammar_score)
       true['consistency'].append(consistency_score)
       true['plot'].append(plot_score)
