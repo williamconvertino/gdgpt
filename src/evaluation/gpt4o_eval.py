@@ -201,26 +201,30 @@ def parse_batch():
   
   output_text = client.files.content(output_file_id).text
   
+  with open(f'{INPUT_DIR}/{FILE_NAME}_input.jsonl', 'r') as f:
+    input_text = f.read()
+    
+  input_text = {json.loads(line)['custom_id']: line for line in input_text.split('\n') if line}
+    
   os.makedirs(OUTPUT_DIR, exist_ok=True)
   with open(f'{OUTPUT_DIR}/{FILE_NAME}_output.jsonl', 'w') as f:
     f.write(output_text)
   
   batch_output = [json.loads(line)['response']['body']['choices'][0]['message']['content'] for line in output_text.split('\n') if line]
   
-  batch_input = [json.loads(line) for line in output_text.split('\n') if line]
+  input_ids = [json.loads(line)['custom_id'] for line in output_text.split('\n') if line]
+  batch_input = [input_text[input_id]['messages'][1]['content'] for input_id in input_ids]
   
   print(batch_input[0])
   
-  # print(batch_input[0])
-  
-  # for i in range(len(batch_output)):
-  #   print("=" * 100)
-  #   print(f"Item {i}:")
-  #   print("=" * 100)
-  #   print("Prompt:")
-  #   print(batch_input[i])
-  #   print("Output:")
-  #   print(batch_output[i])
+  for i in range(len(batch_output)):
+    print("=" * 100)
+    print(f"Item {i}:")
+    print("=" * 100)
+    print("Prompt:")
+    print(batch_input[i])
+    print("Output:")
+    print(batch_output[i])
   
       
   print(f"Saved completions to {OUTPUT_DIR}/{FILE_NAME}_output.jsonl")
