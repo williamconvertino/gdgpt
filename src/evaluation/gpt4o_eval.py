@@ -214,14 +214,14 @@ def parse_batch():
   input_ids = [json.loads(line)['custom_id'] for line in output_text.split('\n') if line]
   batch_input = [input_text[input_id]['body']['messages'][1]['content'] for input_id in input_ids]
   
-  for i in range(len(batch_output)):
-    print("=" * 100)
-    print(f"Item {i}:")
-    print("=" * 100)
-    print("Prompt:")
-    print(batch_input[i])
-    print("Output:")
-    print(batch_output[i])
+  # for i in range(len(batch_output)):
+  #   print("=" * 100)
+  #   print(f"Item {i}:")
+  #   print("=" * 100)
+  #   print("Prompt:")
+  #   print(batch_input[i])
+  #   print("Output:")
+  #   print(batch_output[i])
   
   true = {
     'grammar': [],
