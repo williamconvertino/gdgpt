@@ -195,7 +195,11 @@ def cancel_batch():
   
 def parse_batch():
   assert BATCH_ID is not None, "Batch ID not provided."
-  output_file_id = client.batches.retrieve(BATCH_ID).output_file_id
+  batch = client.batches.retrieve(BATCH_ID)
+  
+  print(batch)
+  
+  output_file_id = batch.output_file_id
   
   output_text = client.files.content(output_file_id).text
   
@@ -204,9 +208,10 @@ def parse_batch():
     f.write(output_text)
   
   batch_output = [json.loads(line)['response']['body']['choices'][0]['message']['content'] for line in output_text.split('\n') if line]
+  
   batch_input = [json.loads(line) for line in output_text.split('\n') if line]
   
-  print(batch_input[0])
+  # print(batch_input[0])
   
   # for i in range(len(batch_output)):
   #   print("=" * 100)
