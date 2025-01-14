@@ -204,7 +204,7 @@ def parse_batch():
     f.write(output_text)
   
   batch_output = [json.loads(line)['response']['body']['choices'][0]['message']['content'] for line in output_text.split('\n') if line]
-  batch_input = [json.loads(line)['request']['body']['messages'][1]['content'] for line in output_text.split('\n') if line]
+  batch_input = [json.loads(line) for line in output_text.split('\n') if line]
   
   print(batch_input[0])
   
