@@ -198,7 +198,9 @@ def parse_batch():
   output_file_id = client.batches.retrieve(BATCH_ID).output_file_id
   
   output_text = client.files.content(output_file_id).text
-  print(output_text)
+  
+  batch_output = json.loads(output_text.split('\n'))
+  print(batch_output[0])
   
   os.makedirs(OUTPUT_DIR, exist_ok=True)
   with open(f'{OUTPUT_DIR}/{FILE_NAME}_output.jsonl', 'w') as f:
