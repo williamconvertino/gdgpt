@@ -199,12 +199,13 @@ def parse_batch():
   
   output_text = client.files.content(output_file_id).text
   
+  os.makedirs(OUTPUT_DIR, exist_ok=True)
+  with open(f'{OUTPUT_DIR}/{FILE_NAME}_output.jsonl', 'w') as f:
+    f.write(output_text)
+  
   batch_output = [json.loads(line).response.body.choices[0].message.content for line in output_text.split('\n') if line]
   
   print(batch_output[0])
   
-  os.makedirs(OUTPUT_DIR, exist_ok=True)
-  with open(f'{OUTPUT_DIR}/{FILE_NAME}_output.jsonl', 'w') as f:
-    f.write(output_text)
       
   print(f"Saved completions to {OUTPUT_DIR}/{FILE_NAME}_output.jsonl")
