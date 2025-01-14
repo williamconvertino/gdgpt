@@ -196,11 +196,12 @@ def cancel_batch():
 def parse_batch():
   assert BATCH_ID is not None, "Batch ID not provided."
   batch = client.batches.retrieve(BATCH_ID)
-  completions = client.batches.list_completions(BATCH_ID)
+  
+  print(batch)
   
   os.makedirs(OUTPUT_DIR, exist_ok=True)
-  with open(f'{OUTPUT_DIR}/{FILE_NAME}_output.jsonl', 'w') as f:
-    for completion in completions:
-      f.write(f"{completion}\n")
+  # with open(f'{OUTPUT_DIR}/{FILE_NAME}_output.jsonl', 'w') as f:
+  #   for completion in completions:
+  #     f.write(f"{completion}\n")
       
   print(f"Saved completions to {OUTPUT_DIR}/{FILE_NAME}_output.jsonl")
