@@ -205,7 +205,14 @@ def parse_batch():
   
   batch_output = [json.loads(line)['response']['body']['choices'][0]['message']['content'] for line in output_text.split('\n') if line]
   
-  print(batch_output[0])
+  for i, item in enumerate(batch_output):
+    print("=" * 100)
+    print(f"Item {i}:")
+    print("=" * 100)
+    print("Prompt:")
+    print(batch_output[i])
+    print("Output:")
+    print(item)
   
       
   print(f"Saved completions to {OUTPUT_DIR}/{FILE_NAME}_output.jsonl")
