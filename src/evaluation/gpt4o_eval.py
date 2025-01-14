@@ -199,7 +199,8 @@ def parse_batch():
   
   output_text = client.files.content(output_file_id).text
   
-  batch_output = json.loads(output_text.split('\n'))
+  batch_output = [json.loads(line) for line in output_text.split('\n') if line]
+  
   print(batch_output[0])
   
   os.makedirs(OUTPUT_DIR, exist_ok=True)
