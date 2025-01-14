@@ -215,8 +215,13 @@ def parse_batch():
   batch_input = [input_text[input_id]['body']['messages'][1]['content'] for input_id in input_ids]
   
   for i in range(len(batch_output)):
+    if 'true' in input_ids[i]:
+      label = "True Ending"
+    else:
+      label = "Beam Search Ending"
+      
     print("=" * 100)
-    print(f"Item {i}:")
+    print(f"Item {i} [{label}]:")
     print("=" * 100)
     print("Prompt:")
     print(batch_input[i])
