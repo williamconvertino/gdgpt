@@ -27,6 +27,6 @@ if __name__ == "__main__":
   elif 'check' in flags:
     check_batch()
   elif 'parse' in flags:
-    pass
+    parse_batch()
   else:
     raise ValueError("No valid flags detected. Please use --input or --batch")
