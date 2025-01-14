@@ -203,7 +203,7 @@ def parse_batch():
   with open(f'{OUTPUT_DIR}/{FILE_NAME}_output.jsonl', 'w') as f:
     f.write(output_text)
   
-  batch_output = [json.loads(line).response.body.choices[0].message.content for line in output_text.split('\n') if line]
+  batch_output = [json.loads(line)['response']['body']['choices'][0].message.content for line in output_text.split('\n') if line]
   
   print(batch_output[0])
   
