@@ -254,7 +254,10 @@ def parse_batch():
       beam['consistency'].append(consistency_score)
       beam['plot'].append(plot_score)
       beam['creativity'].append(creativity_score)
-      
+    
+  print(true)
+  print(beam)
+    
   avg_true_scores = {
     'grammar': sum(true['grammar']) / len(true['grammar']),
     'consistency': sum(true['consistency']) / len(true['consistency']),
