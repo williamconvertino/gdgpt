@@ -205,7 +205,6 @@ def parse_batch():
     input_text = f.read()
     
   input_text = {json.loads(line)['custom_id']: json.loads(line) for line in input_text.split('\n') if line}
-  print(input_text['request_1_true']['body']['messages'][1]['content'])
   os.makedirs(OUTPUT_DIR, exist_ok=True)
   with open(f'{OUTPUT_DIR}/{FILE_NAME}_output.jsonl', 'w') as f:
     f.write(output_text)
@@ -224,5 +223,68 @@ def parse_batch():
     print("Output:")
     print(batch_output[i])
   
+  true = {
+    'grammar': [],
+    'consistency': [],
+    'plot': [],
+    'creativity': []
+  }
+  
+  beam = {
+    'grammar': [],
+    'consistency': [],
+    'plot': [],
+    'creativity': []
+  }
+  
+  for i in range(len(batch_output)):
+    
+    grammar_score = batch_output[i].split('<GRAMMAR_GRADE>')[1].split('</GRAMMAR_GRADE>')[0]
+    consistency_score = batch_output[i].split('<CONSISTENCY_GRADE>')[1].split('</CONSISTENCY_GRADE>')[0]
+    plot_score = batch_output[i].split('<PLOT_GRADE>')[1].split('</PLOT_GRADE>')[0]
+    creativity_score = batch_output[i].split('<CREATIVITY_GRADE>')[1].split('</CREATIVITY_GRADE>')[0] 
+    
+    if input_ids[i].contains('true'):
+      true['grammar'].append(grammar_score)
+      true['consistency'].append(consistency_score)
+      true['plot'].append(plot_score)
+      true['creativity'].append(creativity_score)
+    else:
+      beam['grammar'].append(grammar_score)
+      beam['consistency'].append(consistency_score)
+      beam['plot'].append(plot_score)
+      beam['creativity'].append(creativity_score)
+      
+  avg_true_scores = {
+    'grammar': sum(true['grammar']) / len(true['grammar']),
+    'consistency': sum(true['consistency']) / len(true['consistency']),
+    'plot': sum(true['plot']) / len(true['plot']),
+    'creativity': sum(true['creativity']) / len(true['creativity'])
+  }
+  
+  avg_beam_scores = {
+    'grammar': sum(beam['grammar']) / len(beam['grammar']),
+    'consistency': sum(beam['consistency']) / len(beam['consistency']),
+    'plot': sum(beam['plot']) / len(beam['plot']),
+    'creativity': sum(beam['creativity']) / len(beam['creativity'])
+  }
+  
+  print("=" * 100)
+  print("Average True Scores:")
+  print("=" * 100)
+  print("Grammar:", avg_true_scores['grammar'])
+  print("Consistency:", avg_true_scores['consistency'])
+  print("Plot:", avg_true_scores['plot'])
+  print("Creativity:", avg_true_scores['creativity'])
+  print("Overall:", sum(avg_true_scores.values()) / 4)
+  
+  print("=" * 100)
+  print("Average Beam Scores:")
+  print("=" * 100)
+  print("Grammar:", avg_beam_scores['grammar'])
+  print("Consistency:", avg_beam_scores['consistency'])
+  print("Plot:", avg_beam_scores['plot'])
+  print("Creativity:", avg_beam_scores['creativity'])
+  print("Overall:", sum(avg_beam_scores.values()) / 4)
       
   print(f"Saved completions to {OUTPUT_DIR}/{FILE_NAME}_output.jsonl")
