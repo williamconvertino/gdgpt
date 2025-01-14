@@ -206,8 +206,6 @@ def parse_batch():
     
   input_text = {json.loads(line)['custom_id']: line for line in input_text.split('\n') if line}
   
-  print(input_text)
-  
   os.makedirs(OUTPUT_DIR, exist_ok=True)
   with open(f'{OUTPUT_DIR}/{FILE_NAME}_output.jsonl', 'w') as f:
     f.write(output_text)
@@ -215,7 +213,7 @@ def parse_batch():
   batch_output = [json.loads(line)['response']['body']['choices'][0]['message']['content'] for line in output_text.split('\n') if line]
   
   input_ids = [json.loads(line)['custom_id'] for line in output_text.split('\n') if line]
-  batch_input = [input_text[input_id]['messages'][1]['content'] for input_id in input_ids]
+  batch_input = [input_text[input_id]['body']['messages'][1]['content'] for input_id in input_ids]
   
   print(batch_input[0])
   
