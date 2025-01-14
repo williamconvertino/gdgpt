@@ -199,7 +199,7 @@ def parse_batch():
   
   output_text = client.files.content(output_file_id).text
   
-  batch_output = [json.loads(line) for line in output_text.split('\n') if line]
+  batch_output = [json.loads(line).response.body.choices[0].message.content for line in output_text.split('\n') if line]
   
   print(batch_output[0])
   
