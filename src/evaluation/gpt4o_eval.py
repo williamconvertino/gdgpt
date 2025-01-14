@@ -239,10 +239,10 @@ def parse_batch():
   
   for i in range(len(batch_output)):
     
-    grammar_score = batch_output[i].split('<GRAMMAR_GRADE>')[1].split('</GRAMMAR_GRADE>')[0]
-    consistency_score = batch_output[i].split('<CONSISTENCY_GRADE>')[1].split('</CONSISTENCY_GRADE>')[0]
-    plot_score = batch_output[i].split('<PLOT_GRADE>')[1].split('</PLOT_GRADE>')[0]
-    creativity_score = batch_output[i].split('<CREATIVITY_GRADE>')[1].split('</CREATIVITY_GRADE>')[0] 
+    grammar_score = int(batch_output[i].split('<GRAMMAR_GRADE>')[1].split('</GRAMMAR_GRADE>')[0])
+    consistency_score = int(batch_output[i].split('<CONSISTENCY_GRADE>')[1].split('</CONSISTENCY_GRADE>')[0])
+    plot_score = int(batch_output[i].split('<PLOT_GRADE>')[1].split('</PLOT_GRADE>')[0])
+    creativity_score = int(batch_output[i].split('<CREATIVITY_GRADE>')[1].split('</CREATIVITY_GRADE>')[0])
     
     if 'true' in input_ids:
       true['grammar'].append(grammar_score)
