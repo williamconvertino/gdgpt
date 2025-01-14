@@ -197,11 +197,11 @@ def parse_batch():
   assert BATCH_ID is not None, "Batch ID not provided."
   output_file_id = client.batches.retrieve(BATCH_ID).output_file_id
   
-  file_response = client.files.content(output_file_id)
-  print(file_response)
+  output_text = client.files.content(output_file_id).text
+  print(output_text)
   
   os.makedirs(OUTPUT_DIR, exist_ok=True)
   with open(f'{OUTPUT_DIR}/{FILE_NAME}_output.jsonl', 'w') as f:
-    f.write(file_response)
+    f.write(output_text)
       
   print(f"Saved completions to {OUTPUT_DIR}/{FILE_NAME}_output.jsonl")
