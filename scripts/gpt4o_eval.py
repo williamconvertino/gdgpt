@@ -19,7 +19,7 @@ if __name__ == "__main__":
     
     tokenizer, _, _, test_dataset = get_tokenizer_and_dataset_from_args(model.config.context_size)
     
-    generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10)
+    generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=100)
     
   elif 'batch' in flags:
     print("Creating batch")
