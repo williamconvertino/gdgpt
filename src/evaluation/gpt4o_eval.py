@@ -10,7 +10,7 @@ from src.util import get_time_remaining
 INPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/evaluations/input')
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data/evaluations/output')
 
-MODEL = 'gpt-4o-mini'
+MODEL = 'gpt-4o'
 FILE_NAME = f"{MODEL}_eval_input.jsonl"
 BATCH_ID = 'batch_678594cc4a008190b4ffc6ae686aecc8'
 
