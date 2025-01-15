@@ -134,7 +134,7 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
       try:
         beam_search_sequence = model.beam_search(model_input.unsqueeze(0), eos_token=tokenizer.eos_token_id)
       except Exception as e:
-        print(f"Error in beam search for sequence {i}.")
+        print(f"\rError in beam search for sequence {i}.", end='\n')
         num_skipped += 1
         continue
       
