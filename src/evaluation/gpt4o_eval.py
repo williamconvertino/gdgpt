@@ -24,7 +24,7 @@ assert OPENAI_API_KEY is not None, "OpenAI API key not found in .env file."
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-SYSTEM_PROMPT = "You are an expert writing evaluator designed to assess student story completions. Your role is to provide constructive, fair, and detailed evaluations based on specific rubric criteria."
+SYSTEM_PROMPT = "You are a writing evaluator designed to assess student story completions. You will be provided children's stories written for a 3-4 year old audience. Your role is to provide constructive, fair, and detailed evaluations based on specific rubric criteria."
 
 USER_PROMPT = """
 In the following exercise, the student is given a pre-written beginning of a story. The student needs to complete this story. The exercise tests the student´s language abilities and creativity.
@@ -121,7 +121,7 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
       eos_index = len(sequence) - sequence.tolist()[::-1].index(tokenizer.eos_token_id)
       sequence = sequence[eos_index:] # Trim sequence to include only the most recent story
     
-    input_size = model.config.context_size // 2
+    input_size = min(model.config.context_size // 2, len(sequence) // 2)
 
     model_input = sequence[:input_size]
     
@@ -130,8 +130,7 @@ def generate_gpt4o_inputs(model, tokenizer, test_dataset, num_generations=10):
       
       story_begin = tokenizer.decode(model_input.tolist())
       story_true_end = tokenizer.decode(sequence[input_size:].tolist())
-      # print(story_begin)
-      # print(story_true_end)
+
       beam_search_sequence = model.beam_search(model_input.unsqueeze(0), eos_token=tokenizer.eos_token_id)
       
       beam_search_sequence = beam_search_sequence[0, input_size:].tolist()
