@@ -258,6 +258,8 @@ def parse_batch():
     except:
       return None
     
+    return score
+    
   for i in range(len(batch_output)):
     
     grammar_score = parse_score(batch_output[i], 'GRAMMAR_GRADE')
