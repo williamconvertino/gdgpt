@@ -247,6 +247,8 @@ def parse_batch():
     'creativity': []
   }
   
+  num_errors = 0
+  
   def parse_score(text, tag):
     text = text.split(f'<{tag}>')[1].split(f'</{tag}>')[0].strip()
     
@@ -268,7 +270,7 @@ def parse_batch():
     creativity_score = parse_score(batch_output[i], 'CREATIVITY_GRADE')
     
     if None in [grammar_score, consistency_score, plot_score, creativity_score]:
-      print(f"Error parsing scores for item {i}.")
+      num_errors += 1
       continue
     
     if 'true' in input_ids[i]:
@@ -316,5 +318,7 @@ def parse_batch():
   print("Plot:", avg_beam_scores['plot'])
   print("Creativity:", avg_beam_scores['creativity'])
   print("Overall:", sum(avg_beam_scores.values()) / 4)
+  
+  print(f"Errors: {num_errors}")
       
   print(f"Saved completions to {OUTPUT_DIR}/{FILE_NAME}_output.jsonl")
