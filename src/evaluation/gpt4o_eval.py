@@ -288,17 +288,17 @@ def parse_batch():
   print(beam)
     
   avg_true_scores = {
-    'grammar': sum(true['grammar']) / len(true['grammar']),
-    'consistency': sum(true['consistency']) / len(true['consistency']),
-    'plot': sum(true['plot']) / len(true['plot']),
-    'creativity': sum(true['creativity']) / len(true['creativity'])
+    'grammar': round(sum(true['grammar']) / len(true['grammar']), 2),
+    'consistency': round(sum(true['consistency']) / len(true['consistency']), 2),
+    'plot': round(sum(true['plot']) / len(true['plot']), 2),
+    'creativity': round(sum(true['creativity']) / len(true['creativity']), 2)
   }
   
   avg_beam_scores = {
-    'grammar': sum(beam['grammar']) / len(beam['grammar']),
-    'consistency': sum(beam['consistency']) / len(beam['consistency']),
-    'plot': sum(beam['plot']) / len(beam['plot']),
-    'creativity': sum(beam['creativity']) / len(beam['creativity'])
+    'grammar': round(sum(beam['grammar']) / len(beam['grammar']), 2),
+    'consistency': round(sum(beam['consistency']) / len(beam['consistency']), 2),
+    'plot': round(sum(beam['plot']) / len(beam['plot']), 2),
+    'creativity': round(sum(beam['creativity']) / len(beam['creativity']), 2)
   }
   
   print("=" * 100)
