@@ -248,12 +248,15 @@ def parse_batch():
   }
   
   def parse_score(text, tag):
-    text = text.split(f'<{tag}>')[1].split(f'</{tag}>')[0]
+    text = text.split(f'<{tag}>')[1].split(f'</{tag}>')[0].strip()
     
     if '/' in text:
-      return int(text.split('/')[0])
-    else:
-      return int(text)
+      text = text.split('/')[0].strip()
+    
+    try:
+      score = int(text)
+    except:
+      return None
     
   for i in range(len(batch_output)):
     
@@ -261,6 +264,10 @@ def parse_batch():
     consistency_score = parse_score(batch_output[i], 'CONSISTENCY_GRADE')
     plot_score = parse_score(batch_output[i], 'PLOT_GRADE')
     creativity_score = parse_score(batch_output[i], 'CREATIVITY_GRADE')
+    
+    if None in [grammar_score, consistency_score, plot_score, creativity_score]:
+      print(f"Error parsing scores for item {i}.")
+      continue
     
     if 'true' in input_ids[i]:
       true['grammar'].append(grammar_score)
